@@ -1,0 +1,574 @@
+{
+	"info": {
+		"_postman_id": "bcae3ab2-f7cb-4e27-8355-17d01bb533be",
+		"name": "Mess Management System API",
+		"description": "Postman Collection for Mess Management System covering all major functionalities.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "43827466",
+		"_collection_link": "https://keshavpurhit.postman.co/workspace/keshav-purhit's-Workspace~bd6db5ad-24a5-4c41-80fa-f5d242e6f773/collection/43827466-bcae3ab2-f7cb-4e27-8355-17d01bb533be?action=share&source=collection_link&creator=43827466"
+	},
+	"item": [
+		{
+			"name": "Student Login",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"mobile\": \"1234567890\",\n  \"password\": \"pass123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/student/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"student",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Login",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/auth/admin/login",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"auth",
+						"admin",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Mess",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"North Mess\",\n  \"location\": \"Block A\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/mess",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"mess"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit Mess",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"name\": \"Updated Mess\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/mess/:messId",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"mess",
+						":messId"
+					],
+					"variable": [
+						{
+							"key": "messId"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Mess",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/mess/:messId",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"mess",
+						":messId"
+					],
+					"variable": [
+						{
+							"key": "messId"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Meal Slot",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"type\": \"Lunch\",\n  \"startTime\": \"12:00\",\n  \"endTime\": \"14:00\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/meal-slot",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"meal-slot"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Edit Meal Slot",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"startTime\": \"12:30\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/meal-slot/:slotId",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"meal-slot",
+						":slotId"
+					],
+					"variable": [
+						{
+							"key": "slotId"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Meal Slot",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/meal-slot/:slotId",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"meal-slot",
+						":slotId"
+					],
+					"variable": [
+						{
+							"key": "slotId"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Generate Coupon",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"studentId\": \"123\",\n  \"slotId\": \"456\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/coupon",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"coupon"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validate Coupon",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"couponCode\": \"ABC123\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/coupon/validate",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"coupon",
+						"validate"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Book Meal",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"studentId\": \"123\",\n  \"mealSlotId\": \"456\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/booking",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"booking"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Cancel Booking",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/booking/:bookingId",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"booking",
+						":bookingId"
+					],
+					"variable": [
+						{
+							"key": "bookingId"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "View Availability",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/booking/availability",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"booking",
+						"availability"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Send Notification",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"title\": \"Lunch Ready\",\n  \"message\": \"Please collect your meal\"\n}"
+				},
+				"url": {
+					"raw": "{{base_url}}/notifications",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Generate Report",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/report/mess-usage",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"report",
+						"mess-usage"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Export Report",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/report/export",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"report",
+						"export"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Booking History",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/history/:studentId",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"history",
+						":studentId"
+					],
+					"variable": [
+						{
+							"key": "studentId"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Admin Audit Logs",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{auth_token}}"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/audit-logs",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"audit-logs"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000/api"
+		},
+		{
+			"key": "auth_token",
+			"value": "your_token_here"
+		}
+	]
+}
