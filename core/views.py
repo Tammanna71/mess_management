@@ -4,19 +4,10 @@ from rest_framework.response import Response
 # Create your views here.
 from django.http import JsonResponse
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
 from .models import User, Mess
 from .serializers import UserSerializer, MessSerializer
-
-# def health_check(request):
-#     return JsonResponse({'message': 'API is working ✅'})
-# @api_view(['GET'])
-# def get_students(request):
-#     students = Student.objects.all()
-#     serializer = StudentSerializer(students, many=True)
-#     return Response(serializer.data)
 
 def health_check(request):
     return JsonResponse({"status": "ok"})
@@ -69,26 +60,3 @@ class MessDetailView(APIView):
         mess.delete()
         return Response({"message": "Mess deleted"}, status=status.HTTP_204_NO_CONTENT)
 
-# def student_list(request):
-#     data = {
-#         "students": [
-#             {"id": 1, "name": "Tamanna"},
-#             {"id": 2, "name": "Rahul"},
-#         ]
-#     }
-#     return JsonResponse(data)
-
-# @api_view(['GET', 'POST'])  # Allow both GET and POST
-# def student_list(request):
-#     if request.method == 'GET':
-#         data = {
-#             "students": [
-#                 {"id": 1, "name": "Tamanna"},
-#                 {"id": 2, "name": "Rahul"},
-#             ]
-#         }
-#         return Response(data)
-
-#     elif request.method == 'POST':
-#         new_student = request.data  # Extract JSON from request body
-#         return Response({"message": "Student added successfully", "student": new_student}, status=201)
