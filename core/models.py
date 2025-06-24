@@ -1,36 +1,155 @@
+# from django.db import models
+
+# # Create your models here.
+
+# class User(models.Model):
+#     user_id = models.AutoField(primary_key=True)
+#     name = models.CharField(max_length=100)
+#     room_no = models.CharField(max_length=10)
+#     phone = models.CharField(max_length=15)
+#     email = models.EmailField(unique=True)
+#     roll_no = models.CharField(max_length=20, unique=True)
+#     coupon = models.CharField(max_length=100, null=True, blank=True)  # Placeholder, change to FK later if needed
+
+#     def is_active(self):
+#         # Placeholder: Always active; you can change this logic later
+#         return True
+
+#     def __str__(self):
+#         return f"{self.name} ({self.roll_no})"
+
+
+# class Mess(models.Model):
+#     mess_id = models.AutoField(primary_key=True)
+#     mess_name = models.CharField(max_length=100)
+#     mess_location = models.CharField(max_length=100)
+#     mess_availability = models.BooleanField(default=True)
+#     stock = models.IntegerField(default=0)
+#     mess_admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='administered_mess')
+#     mess_current_status = models.CharField(max_length=50, default="Open")
+#     mess_bookings = models.TextField(null=True, blank=True)  # Placeholder
+#     mess_menu = models.TextField(null=True, blank=True)      # Placeholder
+
+#     def __str__(self):
+#         return self.mess_name
+    
+# class MealType(models.Model):
+#     mess_id = models.AutoField(foreign_key=True)
+#     type = models.CharField(max_length=100)
+#     available = models.CharField(max_length=100)
+#     session_time = models.FloatField(default=True)
+#     delayed = models.IntegerField(null=True)
+#     reserve_meal = models.IntegerField(default=True)
+
+#     def __str__(self):
+#         return self.type
+
+
+# class Menue(models.Model):
+#     mess_id = models.AutoField(foreign_key=True)
+#     session_time = models.IntegerField(max_length=100)
+#     mess_name = models.IntegerField(max_length=100)
+#     session_time = models.FloatField(default=True)
+#     delayed = models.IntegerField(null=True)
+#     reserve_meal = models.IntegerField(default=True)
+
+#     def __str__(self):
+#         return self.type
+
+#session time datatype doesn't match
+#mess_name should be taken from mess
+# Complete Django app: models.py, serializers.py, views.py, urls.py
+# Based on the ERD you uploaded
+
 from django.db import models
 
-# Create your models here.
-
 class User(models.Model):
-    user_id = models.AutoField(primary_key=True)
+    user_id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100)
     room_no = models.CharField(max_length=10)
     phone = models.CharField(max_length=15)
     email = models.EmailField(unique=True)
-    roll_no = models.CharField(max_length=20, unique=True)
-    coupon = models.CharField(max_length=100, null=True, blank=True)  # Placeholder, change to FK later if needed
-
-    def is_active(self):
-        # Placeholder: Always active; you can change this logic later
-        return True
-
-    def __str__(self):
-        return f"{self.name} ({self.roll_no})"
-
+    roll_no = models.CharField(max_length=50, unique=True)
+    is_active = models.BooleanField(default=True)
 
 class Mess(models.Model):
-    mess_id = models.AutoField(primary_key=True)
-    mess_name = models.CharField(max_length=100)
-    mess_location = models.CharField(max_length=100)
-    mess_availability = models.BooleanField(default=True)
-    stock = models.IntegerField(default=0)
-    mess_admin = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='administered_mess')
-    mess_current_status = models.CharField(max_length=50, default="Open")
-    mess_bookings = models.TextField(null=True, blank=True)  # Placeholder
-    mess_menu = models.TextField(null=True, blank=True)      # Placeholder
+    mess_id = models.BigAutoField(primary_key=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    location = models.CharField(max_length=100, null=True, blank=True)
+    availability = models.BooleanField(default=True)
+    stock = models.IntegerField(null=True, blank=True)
+    admin = models.CharField(max_length=100, null=True, blank=True)
+    current_status = models.CharField(max_length=100, null=True, blank=True)
+    bookings = models.IntegerField(null=True, blank=True)
+    menu = models.CharField(max_length=255, null=True, blank=True)
 
-    def __str__(self):
-        return self.mess_name
+class Coupon(models.Model):
+    c_id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    mess = models.ForeignKey(Mess, on_delete=models.CASCADE)
+    session_time = models.DecimalField(max_digits=5, decimal_places=2)
+    location = models.CharField(max_length=100)
+    cancelled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.CharField(max_length=100)
+    meal_type = models.CharField(max_length=100)
+
+class Menu(models.Model):
+    mess = models.ForeignKey(Mess, on_delete=models.CASCADE, related_name='menus')
+    session_time = models.CharField(max_length=50)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    location = models.CharField(max_length=100, null=True, blank=True)
+    item = models.CharField(max_length=100)
+    meal_type = models.CharField(max_length=100)
+
+class MealType(models.Model):
+    mess = models.ForeignKey(Mess, on_delete=models.CASCADE)
+    type = models.CharField(max_length=50)
+    available = models.BooleanField(default=True)
+    session_time = models.FloatField()
+    delayed = models.BooleanField(default=False)
+    reserve_meal = models.BooleanField(default=False)
+
+class Feedback(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    result = models.TextField()
+    issued_to = models.CharField(max_length=100)
+
+class MessItems(models.Model):
+    mess = models.ForeignKey(Mess, on_delete=models.CASCADE)
+    session_time = models.CharField(max_length=50)
+    location = models.CharField(max_length=100)
+    breakfast = models.CharField(max_length=255)
+    lunch = models.CharField(max_length=255)
+    dinner = models.CharField(max_length=255)
+    snacks = models.CharField(max_length=255)
+
+class MonthlyAttendance(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    total_attendance = models.IntegerField()
+    completed_attendance = models.IntegerField()
+    cancelled_attendance = models.IntegerField()
+
+class Organization(models.Model):
+    name = models.CharField(max_length=100)
+    location = models.CharField(max_length=100)
+    admin = models.CharField(max_length=100)
+
+class Status(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    mess = models.ForeignKey(Mess, on_delete=models.CASCADE)
+    location = models.CharField(max_length=100)
+    roll_no = models.CharField(max_length=50)
+
+
+
+
+
+
+
+
+
+
+
 
 

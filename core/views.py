@@ -28,7 +28,12 @@ class StudentLoginView(APIView):
             return Response({"token": "dummy_token", "user_id": user.user_id})
         return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
-
+class UserListView(APIView):
+    def get(self, request):
+        users = User.objects.all()
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+    
 # Mess CRUD
 class MessListCreateView(APIView):
     permission_classes = [permissions.AllowAny]
