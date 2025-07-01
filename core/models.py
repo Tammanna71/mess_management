@@ -62,8 +62,10 @@
 # Based on the ERD you uploaded
 
 from django.db import models
+from django.contrib.auth.models import AbstractBaseUser
 
-class User(models.Model):
+
+class User(AbstractBaseUser):
     user_id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100)
     room_no = models.CharField(max_length=10)
@@ -71,6 +73,17 @@ class User(models.Model):
     email = models.EmailField(unique=True)
     roll_no = models.CharField(max_length=50, unique=True)
     is_active = models.BooleanField(default=True)
+    password = models.CharField(max_length=130)  # Enough for hashed passwords
+
+    USERNAME_FIELD = 'phone'  # or 'email'
+    REQUIRED_FIELDS = ['name', 'email', 'roll_no']
+
+    def __str__(self):
+        return self.name
+
+    @property
+    def id(self):
+        return self.user_id
 
 class Mess(models.Model):
     mess_id = models.BigAutoField(primary_key=True)
