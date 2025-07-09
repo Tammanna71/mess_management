@@ -1,4 +1,8 @@
 from django.shortcuts import render
+from django.db.models import Count
+from django.http import HttpResponse
+import csv
+
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 # Create your views here.
@@ -6,9 +10,9 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
-from .models import User, Mess, MealType, Coupon, Menu, Feedback, MessItems, MonthlyAttendance, Organization, Status
+from .models import User, Mess, MealType, Coupon, Menu, Feedback, MessItems, MonthlyAttendance, Organization, Status, Booking, Notification, Booking, AuditLog
 
-from .serializers import UserSerializer, MessSerializer, RegisterSerializer, MealTypeSerializer, CouponSerializer
+from .serializers import UserSerializer, MessSerializer, RegisterSerializer, MealTypeSerializer, CouponSerializer, BookingSerializer, NotificationSerializer, MessUsageReportSerializer, AuditLogSerializer
 from rest_framework.permissions import AllowAny
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -303,4 +307,190 @@ class MyCouponListView(APIView):
     def get(self, request):
         coupons = Coupon.objects.filter(user=request.user)
         return Response(CouponSerializer(coupons, many=True).data)
+    
+
+class BookingView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if user.name.lower() == "admin":
+            bookings = Booking.objects.all()
+        else:
+            bookings = Booking.objects.filter(user=user)
+        
+        serializer = BookingSerializer(bookings, many=True)
+        return Response(serializer.data)
+
+
+    def post(self, request):
+        """
+        Body:
+        {
+          "userId": 3,
+          "mealSlotId": 5
+        }
+        """
+        student_id  = request.data.get("userId")
+        slot_id     = request.data.get("mealSlotId")
+
+        if None in [student_id, slot_id]:
+            return Response({"detail": "userId and mealSlotId are required"}, status=400)
+
+        try:
+            user_obj = User.objects.get(pk=user_id)
+            slot    = MealType.objects.get(pk=slot_id)
+        except (User.DoesNotExist, MealType.DoesNotExist):
+            return Response({"detail": "User or meal slot not found"}, status=404)
+
+        # Rule: a student can book only themselves unless admin
+        if (request.user != user_obj) and (request.user.name.lower() != "admin"):
+            return Response({"detail": "You can only book meals for yourself"}, status=403)
+
+        # Prevent duplicate booking for the same slot
+        if Booking.objects.filter(user=user_obj, meal_slot=slot, cancelled=False).exists():
+            return Response({"detail": "Meal already booked"}, status=400)
+
+        booking = Booking.objects.create(user=user_obj, meal_slot=slot)
+        return Response(BookingSerializer(booking).data, status=201)
+
+
+class BookingDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, booking_id):
+        booking = get_object_or_404(Booking, pk=booking_id)
+
+        # Only owner or admin can cancel
+        if (booking.user != request.user) and (request.user.name.lower() != "admin"):
+            return Response({"detail": "Not authorized to cancel"}, status=403)
+
+        if booking.cancelled:
+            return Response({"detail": "Booking already cancelled"}, status=400)
+
+        booking.cancelled = True
+        booking.save()
+        return Response({"message": "Booking cancelled"}, status=204)
+    
+class MealAvailabilityView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if user.name.lower() == "admin":
+            slots = MealType.objects.filter(available=True)
+        else:
+            slots = MealType.objects.filter(mess=user.mess, available=True)
+
+        serializer = MealTypeSerializer(slots, many=True)
+        return Response(serializer.data)
+    
+class NotificationView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if request.user.name.lower() != "admin":
+            return Response({"detail": "Only admin can send notifications"}, status=403)
+
+        serializer = NotificationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Notification sent"}, status=status.HTTP_201_CREATED)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class MessUsageReportView(APIView):
+    """GET  /report/mess-usage   → JSON summary (admin only)"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.name.lower() != "admin":
+            return Response({"detail": "Only admin can view reports"}, status=403)
+
+        data = (
+            Booking.objects
+            .filter(cancelled=False)
+            .values("meal_slot__mess_id", "meal_slot__mess__name")
+            .annotate(
+                total_meals=Count("booking_id"),
+                unique_users=Count("user", distinct=True)
+            )
+            .order_by("meal_slot__mess_id")
+        )
+
+        # reshape keys to match serializer
+        processed = [
+            {
+                "mess_id"     : row["meal_slot__mess_id"],
+                "mess_name"   : row["meal_slot__mess__name"],
+                "total_meals" : row["total_meals"],
+                "unique_users": row["unique_users"],
+            }
+            for row in data
+        ]
+
+        ser = MessUsageReportSerializer(processed, many=True)
+        return Response(ser.data)
+
+
+class MessUsageExportView(APIView):
+    """GET  /report/export  → CSV download (admin only)"""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.name.lower() != "admin":
+            return Response({"detail": "Only admin can export reports"}, status=403)
+
+        # Re-use the same query as above
+        rows = (
+            Booking.objects
+            .filter(cancelled=False)
+            .values("meal_slot__mess_id", "meal_slot__mess__name")
+            .annotate(
+                total_meals=Count("booking_id"),
+                unique_users=Count("student", distinct=True)
+            )
+            .order_by("meal_slot__mess_id")
+        )
+
+        # --- build CSV response ---
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = "attachment; filename=mess_usage_report.csv"
+
+        writer = csv.writer(response)
+        writer.writerow(["Mess ID", "Mess Name", "Total Meals", "Unique Users"])
+
+        for r in rows:
+            writer.writerow([
+                r["meal_slot__mess_id"],
+                r["meal_slot__mess__name"],
+                r["total_meals"],
+                r["unique_users"],
+            ])
+
+        return response
+
+# Booking history for a student
+class BookingHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, studentId):
+        if request.user.id != int(studentId) and not request.user.is_staff:
+            return Response({"detail": "Permission denied."}, status=403)
+        bookings = Booking.objects.filter(user__id=studentId).order_by('-created_at')
+        serializer = BookingSerializer(bookings, many=True)
+        return Response(serializer.data)
+
+# Admin Audit logs
+class AuditLogView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.is_staff:
+            return Response({"detail": "Admin access required."}, status=403)
+        logs = AuditLog.objects.all().order_by('-timestamp')
+        serializer = AuditLogSerializer(logs, many=True)
+        return Response(serializer.data)
+
+
 

@@ -62,20 +62,23 @@
 # Based on the ERD you uploaded
 
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
+from django.utils import timezone
 
-
-class User(AbstractBaseUser):
+class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100)
     room_no = models.CharField(max_length=10)
-    phone = models.CharField(max_length=15)
+    phone = models.CharField(max_length=15, unique=True)
     email = models.EmailField(unique=True)
     roll_no = models.CharField(max_length=50, unique=True)
     is_active = models.BooleanField(default=True)
-    password = models.CharField(max_length=130)  # Enough for hashed passwords
+    password = models.CharField(max_length=130)  # For hashed passwords
 
-    USERNAME_FIELD = 'phone'  # or 'email'
+    groups = models.ManyToManyField(Group, related_name="core_user_set", blank=True)
+    user_permissions = models.ManyToManyField(Permission, related_name="core_user_permissions", blank=True)
+
+    USERNAME_FIELD = 'phone'
     REQUIRED_FIELDS = ['name', 'email', 'roll_no']
 
     def __str__(self):
@@ -121,6 +124,7 @@ class MealType(models.Model):
     available = models.BooleanField(default=True)
     session_time = models.FloatField()
     delayed = models.BooleanField(default=False)
+    delay_minutes = models.PositiveIntegerField(null=True, blank=True)
     reserve_meal = models.BooleanField(default=False)
 
 class Feedback(models.Model):
@@ -153,6 +157,32 @@ class Status(models.Model):
     mess = models.ForeignKey(Mess, on_delete=models.CASCADE)
     location = models.CharField(max_length=100)
     roll_no = models.CharField(max_length=50)
+
+class Booking(models.Model):
+    booking_id   = models.BigAutoField(primary_key=True)
+    user      = models.ForeignKey(User,     on_delete=models.CASCADE, null=True)
+    meal_slot    = models.ForeignKey(MealType, on_delete=models.CASCADE)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    cancelled    = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("user", "meal_slot")   #1 booking per slot per student
+
+    def __str__(self):
+        return f"Booking {self.booking_id} - User {self.user.name}"
+
+class Notification(models.Model):
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+class AuditLog(models.Model):
+    action = models.CharField(max_length=255)
+    performed_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    details = models.TextField()
+
+
 
 
 
