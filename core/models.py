@@ -75,6 +75,8 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     password = models.CharField(max_length=130)  # For hashed passwords
 
+    is_superuser = models.BooleanField(default=False)
+
     groups = models.ManyToManyField(Group, related_name="core_user_set", blank=True)
     user_permissions = models.ManyToManyField(Permission, related_name="core_user_permissions", blank=True)
 

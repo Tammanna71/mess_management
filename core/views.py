@@ -17,7 +17,7 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import IsAuthenticated
-from core.permissions import IsNameAdmin
+from core.permissions import IsNameAdmin, IsAdminUserCustom, IsSelfOrAdmin
 import uuid
 
 def health_check(request):
@@ -34,27 +34,37 @@ class UserListView(APIView):
     def get(self, request):
         users = User.objects.all()
         return Response(UserSerializer(users, many=True).data)
-    
 
-#get and delete specific user    
+class UserDeleteView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUserCustom]
+
+    def delete(self, request, user_id):
+        user = get_object_or_404(User, pk=user_id)
+        user.delete()
+        return Response(status=204)   
+
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get_object(self, user_id):
+        return get_object_or_404(User, pk=user_id)
+
     def get(self, request, user_id):
-        # Admin can view anyone's details
-        if request.user.name.lower() == "admin" or request.user.user_id == user_id:
-            user = get_object_or_404(User, pk=user_id)
-            return Response(UserSerializer(user).data)
-        return Response({"detail": "Not authorized to view this user"}, status=403)
+        user = self.get_object(user_id)
+        self.check_object_permissions(request, user)
+        return Response(UserSerializer(user).data)
 
     def delete(self, request, user_id):
-        # Only admin can delete users
-        if request.user.name.lower() != "admin":
-            return Response({"detail": "Only admin can delete users"}, status=403)
-
-        user = get_object_or_404(User, pk=user_id)
+        user = self.get_object(user_id)
+        self.check_object_permissions(request, user)
         user.delete()
         return Response(status=204)
+
+    def get_permissions(self):
+        if self.request.method == "DELETE":
+            return [IsAuthenticated(), IsAdminUserCustom()]
+        return [IsAuthenticated(), IsSelfOrAdmin()]
+
     
 
 class MessListCreateView(APIView):
