@@ -62,8 +62,25 @@
 # Based on the ERD you uploaded
 
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission
+from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, Group, Permission, BaseUserManager
 from django.utils import timezone
+
+
+class UserManager(BaseUserManager):
+    def create_user(self, phone, password=None, **extra_fields):
+        if not phone:
+            raise ValueError("Phone number is required")
+        user = self.model(phone=phone, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, phone, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_active', True)
+
+        return self.create_user(phone, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.BigAutoField(primary_key=True)
@@ -72,23 +89,23 @@ class User(AbstractBaseUser, PermissionsMixin):
     phone = models.CharField(max_length=15, unique=True)
     email = models.EmailField(unique=True)
     roll_no = models.CharField(max_length=50, unique=True)
-    is_active = models.BooleanField(default=True)
-    password = models.CharField(max_length=130)  # For hashed passwords
+    password = models.CharField(max_length=130)
+    last_login = models.DateTimeField(null=True, blank=True)
 
+    # These are required for admin compatibility
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
-    groups = models.ManyToManyField(Group, related_name="core_user_set", blank=True)
-    user_permissions = models.ManyToManyField(Permission, related_name="core_user_permissions", blank=True)
+    date_joined = models.DateTimeField(default=timezone.now)
 
     USERNAME_FIELD = 'phone'
-    REQUIRED_FIELDS = ['name', 'email', 'roll_no']
+    REQUIRED_FIELDS = ['email', 'name', 'roll_no']
+
+    objects = UserManager()
 
     def __str__(self):
         return self.name
-
-    @property
-    def id(self):
-        return self.user_id
 
 class Mess(models.Model):
     mess_id = models.BigAutoField(primary_key=True)
