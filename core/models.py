@@ -70,6 +70,16 @@ class UserManager(BaseUserManager):
     def create_user(self, phone, password=None, **extra_fields):
         if not phone:
             raise ValueError("Phone number is required")
+
+        is_admin = extra_fields.get('is_staff') or extra_fields.get('is_superuser')
+
+    # Enforce roll_no and room_no for students only
+        if not is_admin:
+            if not extra_fields.get('roll_no'):
+                raise ValueError("Roll number is required for students")
+            if not extra_fields.get('room_no'):
+                raise ValueError("Room number is required for students")
+
         user = self.model(phone=phone, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
@@ -85,10 +95,10 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100)
-    room_no = models.CharField(max_length=10)
+    room_no = models.CharField(max_length=10, null=True, blank=True)
     phone = models.CharField(max_length=15, unique=True)
     email = models.EmailField(unique=True)
-    roll_no = models.CharField(max_length=50, unique=True)
+    roll_no = models.CharField(max_length=50, unique=True, null=True, blank=True)
     password = models.CharField(max_length=130)
     last_login = models.DateTimeField(null=True, blank=True)
 

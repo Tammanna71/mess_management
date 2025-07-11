@@ -61,6 +61,24 @@ class UserDetailView(APIView):
         if self.request.method == "DELETE":
             return [IsAuthenticated(), IsAdminUser()]
         return [IsAuthenticated(), IsSelfOrAdmin()]
+    
+class AdminCreateView(APIView):
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request):
+        data = request.data
+        user = User.objects.create_user(
+            name=data['name'],
+            email=data['email'],
+            phone=data['phone'],
+            room_no=data['room_no'],
+            roll_no=data['roll_no'],
+            password=data['password'],
+            is_staff=True,
+            is_superuser=True
+        )
+        return Response(UserSerializer(user).data, status=201)
+
 
 class MessListCreateView(APIView):
     permission_classes = [IsAuthenticated]
@@ -346,6 +364,17 @@ class BookingDetailView(APIView):
         booking.save()
         return Response({"message": "Booking cancelled"}, status=204)
 
+class BookingHistoryView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, userId):
+        if request.user.user_id != int(userId) and not request.user.is_staff:
+            return Response({"detail": "Permission denied."}, status=403)
+
+        bookings = Booking.objects.filter(user__user_id=userId).order_by('-created_at')
+        serializer = BookingSerializer(bookings, many=True)
+        return Response(serializer.data)
+
 class MealAvailabilityView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -430,15 +459,6 @@ class MessUsageExportView(APIView):
 
         return response
 
-class BookingHistoryView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, studentId):
-        if request.user.id != int(studentId) and not request.user.is_staff:
-            return Response({"detail": "Permission denied."}, status=403)
-        bookings = Booking.objects.filter(user__id=studentId).order_by('-created_at')
-        serializer = BookingSerializer(bookings, many=True)
-        return Response(serializer.data)
 
 class AuditLogView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]

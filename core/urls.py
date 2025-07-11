@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import RegisterView, BaseLoginMixin, StudentLoginView, AdminLoginView, UserListView, UserDetailView, MessListCreateView, MessDetailView, health_check, home
+from .views import RegisterView, AdminCreateView, BaseLoginMixin, StudentLoginView, AdminLoginView, UserListView, UserDetailView, MessListCreateView, MessDetailView, health_check, home
 from .views import MealSlotDetailView, MealSlotView, GenerateCouponView, ValidateCouponView, MyCouponListView, BookingDetailView, BookingView, MealAvailabilityView, NotificationView, MessUsageReportView, MessUsageExportView, BookingHistoryView, AuditLogView
 from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 
@@ -12,6 +12,7 @@ urlpatterns = [
     path('auth/student/login', StudentLoginView.as_view()),
     path('auth/admin/login', AdminLoginView.as_view()),
     path('auth/signup', RegisterView.as_view(), name='register'),
+    path('admin/signup', AdminCreateView.as_view()),
     
     #users
     path('users/', UserListView.as_view(), name='user-list'),
@@ -37,7 +38,7 @@ urlpatterns = [
     path("report/mess-usage", MessUsageReportView.as_view()),
     path("report/export",     MessUsageExportView.as_view()),
 
-    path('history/<int:studentId>', BookingHistoryView.as_view()),
+    path('history/<int:userId>', BookingHistoryView.as_view()),
     path('audit-logs', AuditLogView.as_view()),
 
 ]
