@@ -312,43 +312,7 @@ class MyCouponListView(APIView):
         coupons = Coupon.objects.filter(user=request.user)
         return Response(CouponSerializer(coupons, many=True).data)
 
-# Bookings
-class BookingView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        if request.user.is_staff:
-            bookings = Booking.objects.all()
-        else:
-            bookings = Booking.objects.filter(user=request.user)
-
-        serializer = BookingSerializer(bookings, many=True)
-        return Response(serializer.data)
-
-    def post(self, request):
-        student_id  = request.data.get("userId")
-        slot_id     = request.data.get("mealSlotId")
-
-        if None in [student_id, slot_id]:
-            return Response({"detail": "userId and mealSlotId are required"}, status=400)
-
-        try:
-            user_obj = User.objects.get(pk=student_id)
-            slot     = MealType.objects.get(pk=slot_id)
-        except (User.DoesNotExist, MealType.DoesNotExist):
-            return Response({"detail": "User or meal slot not found"}, status=404)
-
-        if (request.user != user_obj) and (not request.user.is_staff):
-            return Response({"detail": "You can only book meals for yourself"}, status=403)
-
-        if Booking.objects.filter(user=user_obj, meal_slot=slot, cancelled=False).exists():
-            return Response({"detail": "Meal already booked"}, status=400)
-
-        booking = Booking.objects.create(user=user_obj, meal_slot=slot)
-        return Response(BookingSerializer(booking).data, status=201)
-
-
-class BookingDetailView(APIView):
+class BookingDeleteView(APIView):
     permission_classes = [IsAuthenticated]
 
     def delete(self, request, booking_id):
@@ -360,9 +324,14 @@ class BookingDetailView(APIView):
         if booking.cancelled:
             return Response({"detail": "Booking already cancelled"}, status=400)
 
-        booking.cancelled = True
-        booking.save()
-        return Response({"message": "Booking cancelled"}, status=204)
+        #booking cancellation allowed only til 1 hour before the booked meal-slot
+        if booking.can_cancel():
+            booking.cancelled = True
+            booking.save()
+            return Response({"message": "Booking cancelled"}, status=204)
+        else:
+            return Response({"detail": "Cancellation window expired (1 hour limit)"}, status=403)
+
 
 class BookingHistoryView(APIView):
     permission_classes = [IsAuthenticated]

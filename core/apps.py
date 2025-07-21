@@ -6,4 +6,4 @@ class CoreConfig(AppConfig):
     name = 'core'
 
     def ready(self):
-        import core.signals  # 👈 This line is required to trigger your signal
+        import core.signals  # triggers signal
