@@ -1,7 +1,7 @@
 from django.urls import path
 from . import views
 from .views import RegisterView, AdminCreateView, BaseLoginMixin, StudentLoginView, AdminLoginView, UserListView, UserDetailView, MessListCreateView, MessDetailView, health_check, home
-from .views import MealSlotDetailView, MealSlotView, GenerateCouponView, ValidateCouponView, MyCouponListView, BookingDetailView, BookingView, MealAvailabilityView, NotificationView, MessUsageReportView, MessUsageExportView, BookingHistoryView, AuditLogView
+from .views import MealSlotDetailView, MealSlotView, GenerateCouponView, ValidateCouponView, MyCouponListView, BookingDeleteView, BookingView, MealAvailabilityView, NotificationView, MessUsageReportView, MessUsageExportView, BookingHistoryView, AuditLogView
 from rest_framework_simplejwt.views import TokenRefreshView, TokenObtainPairView
 
 urlpatterns = [
@@ -30,7 +30,7 @@ urlpatterns = [
     path("coupons/my", MyCouponListView.as_view()),   # GET – students see only their coupons
 
     path("booking", BookingView.as_view(),        name="booking-create"),
-    path("booking/<int:booking_id>", BookingDetailView.as_view(), name="booking-detail"),
+    path("booking/<int:booking_id>", BookingDeleteView.as_view(), name="booking-delete"),
     path("booking/availability", MealAvailabilityView.as_view(), name="meal-avail"),
 
     path('notifications/', NotificationView.as_view()),
@@ -44,16 +44,6 @@ urlpatterns = [
 ]
 
 
-
-
-
-
-
-
-
-
-
-# eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzUxMzUwMDgwLCJpYXQiOjE3NTEzNDgyODAsImp0aSI6Ijc5YTdmNzFlZjEyNzQ4ZTA4NGY0YWZlOTYxOGY5ZjdkIiwidXNlcl9pZCI6OX0.45x1QUbnBzliAurSoUudm4hDm6MHEZVf_GyalWRooL4
 
 
 # path('auth/token', TokenObtainPairView.as_view(), name='token_obtain_pair'),

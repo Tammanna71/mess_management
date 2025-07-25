@@ -15,7 +15,7 @@ from .serializers import UserSerializer, MessSerializer, RegisterSerializer, Mea
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
-from core.permissions import IsNameAdmin, IsAdminUserCustom, IsSelfOrAdmin
+from core.permissions import IsSelfOrAdmin
 import uuid
 
 def health_check(request):
@@ -312,6 +312,44 @@ class MyCouponListView(APIView):
         coupons = Coupon.objects.filter(user=request.user)
         return Response(CouponSerializer(coupons, many=True).data)
 
+# Bookings
+class BookingView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if request.user.is_staff:
+            bookings = Booking.objects.all()
+        else:
+            bookings = Booking.objects.filter(user=request.user)
+
+        serializer = BookingSerializer(bookings, many=True)
+        return Response(serializer.data)
+
+    def post(self, request):
+        student_id  = request.data.get("userId")
+        slot_id     = request.data.get("mealSlotId")
+
+        if None in [student_id, slot_id]:
+            return Response({"detail": "userId and mealSlotId are required"}, status=400)
+
+        try:
+            user_obj = User.objects.get(pk=student_id)
+            slot     = MealType.objects.get(pk=slot_id)
+        except (User.DoesNotExist, MealType.DoesNotExist):
+            return Response({"detail": "User or meal slot not found"}, status=404)
+
+        if (request.user != user_obj) and (not request.user.is_staff):
+            return Response({"detail": "You can only book meals for yourself"}, status=403)
+
+        if Booking.objects.filter(user=user_obj, meal_slot=slot, cancelled=False).exists():
+            return Response({"detail": "Meal already booked"}, status=400)
+
+        booking = Booking.objects.create(user=user_obj, meal_slot=slot)
+        return Response(BookingSerializer(booking).data, status=201)
+    
+    # Booking.objects.active()  # gets all non-cancelled bookings
+    
+
 class BookingDeleteView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -324,7 +362,7 @@ class BookingDeleteView(APIView):
         if booking.cancelled:
             return Response({"detail": "Booking already cancelled"}, status=400)
 
-        #booking cancellation allowed only til 1 hour before the booked meal-slot
+        #cancellation allowed until 1 hr of booked meal-slot
         if booking.can_cancel():
             booking.cancelled = True
             booking.save()

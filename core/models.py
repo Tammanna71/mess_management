@@ -136,6 +136,10 @@ class Status(models.Model):
     location = models.CharField(max_length=100)
     roll_no = models.CharField(max_length=50)
 
+class BookingManager(models.Manager):
+    def active(self):
+        return self.filter(cancelled=False)
+
 class Booking(models.Model):
     booking_id   = models.BigAutoField(primary_key=True)
     user      = models.ForeignKey(User,     on_delete=models.CASCADE, null=True)
@@ -162,9 +166,6 @@ class Booking(models.Model):
         return f"Booking {self.booking_id} - User {self.user.name if self.user else 'N/A'}"
 
 
-class BookingManager(models.Manager):
-    def active(self):
-        return self.filter(cancelled=False)
 
 class Notification(models.Model):
     title = models.CharField(max_length=255)

@@ -53,7 +53,7 @@ class RegisterSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
     
 class CouponSerializer(serializers.ModelSerializer):
-     mess_name = serializers.CharField(source='mess.name', read_only=True)
+    mess_name = serializers.CharField(source='mess.name', read_only=True)
     user_name = serializers.CharField(source='user.name', read_only=True)
 
     class Meta:
