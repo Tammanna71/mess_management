@@ -3,6 +3,33 @@ from rest_framework import serializers
 from .models import User, Mess, Booking, Coupon, Menu, MealType, Feedback, MessItems, MonthlyAttendance, Organization, Status, Notification, AuditLog
 from django.contrib.auth.hashers import make_password
 
+# Add Pydantic integration
+from .pydantic_models import UserPydantic, MessPydantic, CouponPydantic
+from pydantic import ValidationError
+
+class PydanticValidatedSerializer(serializers.ModelSerializer):
+    """
+    Base serializer that integrates Pydantic validation
+    """
+    pydantic_model = None  # Override in subclasses
+    
+    def validate(self, attrs):
+        # Call parent validation first
+        attrs = super().validate(attrs)
+        
+        # Add Pydantic validation if model is specified
+        if self.pydantic_model:
+            try:
+                pydantic_obj = self.pydantic_model(**attrs)
+                # Update attrs with any transformations from Pydantic
+                attrs.update(pydantic_obj.dict())
+            except ValidationError as e:
+                raise serializers.ValidationError({
+                    "pydantic_errors": e.errors()
+                })
+        
+        return attrs
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -31,7 +58,9 @@ class MealTypeSerializer(serializers.ModelSerializer):
         return data
 
 
-class RegisterSerializer(serializers.ModelSerializer):
+class RegisterSerializer(PydanticValidatedSerializer):
+    pydantic_model = UserPydantic
+    
     class Meta:
         model = User
         fields = ("name","room_no", "phone", "email", "roll_no", "password")

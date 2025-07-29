@@ -15,8 +15,49 @@ from .serializers import UserSerializer, MessSerializer, RegisterSerializer, Mea
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
-from core.permissions import IsSelfOrAdmin
+from core.permissions import IsSelfOrAdmin, HasRole, HasPermission, AdminOrStaff, CanManageUsers, CanViewReports
 import uuid
+
+# Add Pydantic imports
+from .pydantic_models import UserPydantic, MessPydantic, CouponPydantic
+from pydantic import ValidationError
+
+class DualValidationMixin:
+    """
+    Mixin to provide both Pydantic and DRF validation
+    """
+    pydantic_model = None  # Override in subclasses
+    
+    def validate_with_pydantic(self, data):
+        """Validate data using Pydantic model"""
+        if not self.pydantic_model:
+            return data, None
+            
+        try:
+            pydantic_obj = self.pydantic_model(**data)
+            return pydantic_obj.dict(), None
+        except ValidationError as e:
+            return None, e.errors()
+    
+    def dual_validate(self, data, drf_serializer_class):
+        """Perform both Pydantic and DRF validation"""
+        # Step 1: Pydantic validation
+        validated_data, pydantic_errors = self.validate_with_pydantic(data)
+        if pydantic_errors:
+            return None, {
+                "pydantic_errors": pydantic_errors,
+                "message": "Data structure validation failed"
+            }
+        
+        # Step 2: DRF validation
+        serializer = drf_serializer_class(data=validated_data)
+        if serializer.is_valid():
+            return serializer, None
+        else:
+            return None, {
+                "drf_errors": serializer.errors,
+                "message": "Business logic validation failed"
+            }
 
 def health_check(request):
     return JsonResponse({"status": "ok"})
@@ -126,15 +167,20 @@ class MessDetailView(APIView):
         mess.delete()
         return Response({"message": "Mess deleted"}, status=status.HTTP_204_NO_CONTENT)
 
-class RegisterView(APIView):
+class RegisterView(DualValidationMixin, APIView):
     permission_classes = [AllowAny]
+    pydantic_model = UserPydantic
 
     def post(self, request):
-        ser = RegisterSerializer(data=request.data)
-        if ser.is_valid():
-            ser.save()
-            return Response(ser.data, status=201)
-        return Response(ser.errors, status=400)
+        # Use dual validation mixin
+        serializer, errors = self.dual_validate(request.data, RegisterSerializer)
+        
+        if errors:
+            return Response(errors, status=400)
+        
+        # Save the validated data
+        serializer.save()
+        return Response(serializer.data, status=201)
 
 
 class BaseLoginMixin(APIView):
@@ -142,14 +188,9 @@ class BaseLoginMixin(APIView):
     permission_classes = [AllowAny]
 
     def _issue_tokens(self, user):
-        refresh = RefreshToken.for_user(user)
-        return Response(
-            {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-            },
-            status=200,
-        )
+        # Use the new role-based token generation
+        token_data = create_tokens_with_roles(user)
+        return Response(token_data, status=200)
 
 
 class StudentLoginView(BaseLoginMixin):
@@ -474,6 +515,130 @@ class AuditLogView(APIView):
         logs = AuditLog.objects.all().order_by('-timestamp')
         serializer = AuditLogSerializer(logs, many=True)
         return Response(serializer.data)
+
+
+class TokenInfoView(APIView):
+    """
+    View to demonstrate role-based token information.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        """
+        Return current user's token information including roles and permissions.
+        """
+        # Get user roles from the authentication
+        auth_instance = CoreUserJWTAuthentication()
+        roles = auth_instance.get_user_roles(request.user)
+        
+        # Get user permissions
+        from core.auth import get_user_permissions
+        permissions = get_user_permissions(request.user, roles)
+        
+        return Response({
+            "user_info": {
+                "user_id": request.user.user_id,
+                "name": request.user.name,
+                "email": request.user.email,
+                "phone": request.user.phone,
+                "is_staff": request.user.is_staff,
+                "is_superuser": request.user.is_superuser,
+            },
+            "roles": roles,
+            "permissions": permissions,
+            "token_info": {
+                "message": "This endpoint shows your current roles and permissions",
+                "note": "Roles and permissions are automatically included in JWT tokens"
+            }
+        })
+
+
+class RoleBasedTestView(APIView):
+    """
+    Test view to demonstrate role-based access control.
+    """
+    permission_classes = [HasRole(['admin', 'staff'])]
+
+    def get(self, request):
+        return Response({
+            "message": "Access granted! You have admin or staff role.",
+            "user_roles": getattr(request.user, 'roles', []),
+            "endpoint": "Admin/Staff only endpoint"
+        })
+
+
+class PermissionBasedTestView(APIView):
+    """
+    Test view to demonstrate permission-based access control.
+    """
+    permission_classes = [HasPermission(['user.read', 'mess.read'])]
+
+    def get(self, request):
+        return Response({
+            "message": "Access granted! You have user.read and mess.read permissions.",
+            "user_permissions": getattr(request.user, 'permissions', []),
+            "endpoint": "Permission-based endpoint"
+        })
+
+
+class SuperUserOnlyView(APIView):
+    """
+    View accessible only to superusers.
+    """
+    permission_classes = [HasRole('superuser')]
+
+    def get(self, request):
+        return Response({
+            "message": "Superuser access granted!",
+            "user_roles": getattr(request.user, 'roles', []),
+            "endpoint": "Superuser only endpoint"
+        })
+
+
+class StudentOnlyView(APIView):
+    """
+    View accessible only to students.
+    """
+    permission_classes = [HasRole('student')]
+
+    def get(self, request):
+        return Response({
+            "message": "Student access granted!",
+            "user_roles": getattr(request.user, 'roles', []),
+            "endpoint": "Student only endpoint"
+        })
+
+
+class FlexiblePermissionView(APIView):
+    """
+    Test view demonstrating flexible permission checking (ANY permission).
+    """
+    permission_classes = [HasPermission(['user.read', 'mess.read', 'booking.read'], require_all=False)]
+
+    def get(self, request):
+        return Response({
+            "message": "Access granted! You have at least one of the required permissions.",
+            "user_permissions": getattr(request.user, 'permissions', []),
+            "endpoint": "Flexible permission endpoint (ANY permission)"
+        })
+
+
+class ComplexPermissionView(APIView):
+    """
+    Test view demonstrating complex permission requirements.
+    """
+    permission_classes = [
+        HasRole('admin'),  # Must be admin
+        HasPermission('user.delete')  # AND have delete permission
+    ]
+
+    def get(self, request):
+        return Response({
+            "message": "Access granted! You are admin AND have user.delete permission.",
+            "user_roles": getattr(request.user, 'roles', []),
+            "user_permissions": getattr(request.user, 'permissions', []),
+            "endpoint": "Complex permission endpoint (Role + Permission)"
+        })
 
 
 
