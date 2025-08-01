@@ -117,18 +117,7 @@ def create_users(org1, org2):
         user = User.objects.create(
             name=name,
             email=f"student{i+1}@iitb.ac.in",
-            phone=f"Failed to load resource: the server responded with a status of 401 (Unauthorized)
-hook.js:608 Login failed: 
-AxiosError
-:8000/api/auth/student/login/:1 
- Failed to load resource: the server responded with a status of 401 (Unauthorized)
-hook.js:608 Login failed: 
-AxiosError
-:8000/api/auth/student/login/:1 
- Failed to load resource: the server responded with a status of 401 (Unauthorized)
-hook.js:608 Login failed: 
-AxiosError
-overrideMethod	@	hook.js:608{str(i+100).zfill(5)}",
+            phone=f"+9198{str(i+100).zfill(7)}",
             password=make_password("password123"),
             room_no=f"{chr(65 + (i % 4))}-{100 + (i % 20)}",
             roll_no=f"2023{str(i+1).zfill(3)}"
