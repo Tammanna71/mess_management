@@ -15,10 +15,14 @@ urlpatterns = [
     path('home/', views.home),
 
     #Auth
-    path('auth/student/login', StudentLoginView.as_view()),
-    path('auth/admin/login', AdminLoginView.as_view()),
-    path('auth/signup', RegisterView.as_view(), name='register'),
-    path('admin/signup', AdminCreateView.as_view()),
+    path('auth/student/login/', StudentLoginView.as_view()),
+    path('auth/admin/login/', AdminLoginView.as_view()),
+    path('auth/signup/', RegisterView.as_view(), name='register'),
+    path('auth/admin/signup/', AdminCreateView.as_view()),
+    
+    # JWT Token endpoints
+    path('auth/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     
     # Token and Role Testing
     path('token/info', TokenInfoView.as_view(), name='token-info'),
@@ -73,12 +77,6 @@ urlpatterns = [
     path('audit-logs', AuditLogView.as_view()),
 
 ]
-
-
-
-
-# path('auth/token', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-# path("auth/token/refresh", TokenRefreshView.as_view(), name="token_refresh"),
     
 
 

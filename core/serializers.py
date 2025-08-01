@@ -44,6 +44,10 @@ class MessSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class MealTypeSerializer(serializers.ModelSerializer):
+    mess_name = serializers.CharField(source='mess.name', read_only=True)
+    mess_location = serializers.CharField(source='mess.location', read_only=True)
+    booking_count = serializers.SerializerMethodField()
+    
     class Meta:
         model = MealType
         fields = '__all__'
@@ -56,6 +60,10 @@ class MealTypeSerializer(serializers.ModelSerializer):
             data["delayed"] = False
             data["delay_minutes"] = None
         return data
+    
+    def get_booking_count(self, obj):
+        from .models import Booking
+        return Booking.objects.filter(meal_slot=obj, cancelled=False).count()
 
 
 class RegisterSerializer(PydanticValidatedSerializer):
@@ -91,10 +99,19 @@ class CouponSerializer(serializers.ModelSerializer):
         read_only_fields = ["c_id", "cancelled", "created_at", "created_by"]
 
 class BookingSerializer(serializers.ModelSerializer):
+    user = UserSerializer(read_only=True)
+    meal_slot = MealTypeSerializer(read_only=True)
+    mess = serializers.SerializerMethodField()
+    
     class Meta:
         model = Booking
         fields = '__all__'
         read_only_fields = ['booking_id', 'created_at', 'cancelled']
+    
+    def get_mess(self, obj):
+        if obj.meal_slot and obj.meal_slot.mess:
+            return MessSerializer(obj.meal_slot.mess).data
+        return None
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:

@@ -86,6 +86,29 @@ class HasPermission(BasePermission):
             return False
 
 
+# Factory functions for creating permission classes
+def has_role(required_roles):
+    """
+    Factory function to create a HasRole permission class.
+    """
+    class RolePermission(HasRole):
+        def __init__(self):
+            super().__init__(required_roles)
+    
+    return RolePermission
+
+
+def has_permission(required_permissions, require_all=True):
+    """
+    Factory function to create a HasPermission permission class.
+    """
+    class PermissionPermission(HasPermission):
+        def __init__(self):
+            super().__init__(required_permissions, require_all)
+    
+    return PermissionPermission
+
+
 # Convenience Classes for Common Patterns
 class AdminOrStaff(BasePermission):
     """

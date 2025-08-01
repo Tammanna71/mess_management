@@ -46,23 +46,34 @@ def jwt_token_required(view_func):
         token = auth_header.split(' ')[1]
         
         try:
+            # Validate the token using custom settings
+            from django.conf import settings
+            from rest_framework_simplejwt.settings import api_settings
+            
+            # Use the custom user_id claim from settings
+            user_id_claim = getattr(api_settings, 'USER_ID_CLAIM', 'user_id')
+            
             # Validate the token
             access_token = AccessToken(token)
             
-            # Get user_id from token
-            user_id = access_token.get('user_id')
+            # Get user_id from token using the custom claim
+            user_id = access_token.get(user_id_claim)
             if not user_id:
                 return JsonResponse({
                     'error': 'Invalid token',
                     'message': 'Token does not contain user information'
                 }, status=status.HTTP_401_UNAUTHORIZED)
             
-            # Check if token is expired
-            if access_token.is_expired():
-                return JsonResponse({
-                    'error': 'Token expired',
-                    'message': 'JWT token has expired. Please login again.'
-                }, status=status.HTTP_401_UNAUTHORIZED)
+            # Check if token is expired (using the correct method)
+            from datetime import datetime
+            exp_timestamp = access_token.get('exp')
+            if exp_timestamp:
+                exp_datetime = datetime.fromtimestamp(exp_timestamp)
+                if datetime.now() > exp_datetime:
+                    return JsonResponse({
+                        'error': 'Token expired',
+                        'message': 'JWT token has expired. Please login again.'
+                    }, status=status.HTTP_401_UNAUTHORIZED)
             
             # Add user_id to request for use in view
             request.user_id = user_id
@@ -123,18 +134,29 @@ def admin_only(view_func):
         token = auth_header.split(' ')[1]
         
         try:
+            # Validate the token using custom settings
+            from django.conf import settings
+            from rest_framework_simplejwt.settings import api_settings
+            
+            # Use the custom user_id claim from settings
+            user_id_claim = getattr(api_settings, 'USER_ID_CLAIM', 'user_id')
+            
             # Validate the token
             access_token = AccessToken(token)
             
-            # Check if token is expired
-            if access_token.is_expired():
-                return JsonResponse({
-                    'error': 'Token expired',
-                    'message': 'JWT token has expired. Please login again.'
-                }, status=status.HTTP_401_UNAUTHORIZED)
+            # Check if token is expired (using the correct method)
+            from datetime import datetime
+            exp_timestamp = access_token.get('exp')
+            if exp_timestamp:
+                exp_datetime = datetime.fromtimestamp(exp_timestamp)
+                if datetime.now() > exp_datetime:
+                    return JsonResponse({
+                        'error': 'Token expired',
+                        'message': 'JWT token has expired. Please login again.'
+                    }, status=status.HTTP_401_UNAUTHORIZED)
             
-            # Get user information from token
-            user_id = access_token.get('user_id')
+            # Get user information from token using the custom claim
+            user_id = access_token.get(user_id_claim)
             roles = access_token.get('roles', [])
             is_staff = access_token.get('is_staff', False)
             is_superuser = access_token.get('is_superuser', False)
@@ -220,18 +242,29 @@ def role_required(required_roles):
             token = auth_header.split(' ')[1]
             
             try:
+                # Validate the token using custom settings
+                from django.conf import settings
+                from rest_framework_simplejwt.settings import api_settings
+                
+                # Use the custom user_id claim from settings
+                user_id_claim = getattr(api_settings, 'USER_ID_CLAIM', 'user_id')
+                
                 # Validate the token
                 access_token = AccessToken(token)
                 
-                # Check if token is expired
-                if access_token.is_expired():
-                    return JsonResponse({
-                        'error': 'Token expired',
-                        'message': 'JWT token has expired. Please login again.'
-                    }, status=status.HTTP_401_UNAUTHORIZED)
+                # Check if token is expired (using the correct method)
+                from datetime import datetime
+                exp_timestamp = access_token.get('exp')
+                if exp_timestamp:
+                    exp_datetime = datetime.fromtimestamp(exp_timestamp)
+                    if datetime.now() > exp_datetime:
+                        return JsonResponse({
+                            'error': 'Token expired',
+                            'message': 'JWT token has expired. Please login again.'
+                        }, status=status.HTTP_401_UNAUTHORIZED)
                 
-                # Get user information from token
-                user_id = access_token.get('user_id')
+                # Get user information from token using the custom claim
+                user_id = access_token.get(user_id_claim)
                 roles = access_token.get('roles', [])
                 
                 # Convert required_roles to list if it's a string
@@ -314,18 +347,29 @@ def permission_required(required_permissions, require_all=True):
             token = auth_header.split(' ')[1]
             
             try:
+                # Validate the token using custom settings
+                from django.conf import settings
+                from rest_framework_simplejwt.settings import api_settings
+                
+                # Use the custom user_id claim from settings
+                user_id_claim = getattr(api_settings, 'USER_ID_CLAIM', 'user_id')
+                
                 # Validate the token
                 access_token = AccessToken(token)
                 
-                # Check if token is expired
-                if access_token.is_expired():
-                    return JsonResponse({
-                        'error': 'Token expired',
-                        'message': 'JWT token has expired. Please login again.'
-                    }, status=status.HTTP_401_UNAUTHORIZED)
+                # Check if token is expired (using the correct method)
+                from datetime import datetime
+                exp_timestamp = access_token.get('exp')
+                if exp_timestamp:
+                    exp_datetime = datetime.fromtimestamp(exp_timestamp)
+                    if datetime.now() > exp_datetime:
+                        return JsonResponse({
+                            'error': 'Token expired',
+                            'message': 'JWT token has expired. Please login again.'
+                        }, status=status.HTTP_401_UNAUTHORIZED)
                 
-                # Get user information from token
-                user_id = access_token.get('user_id')
+                # Get user information from token using the custom claim
+                user_id = access_token.get(user_id_claim)
                 permissions = access_token.get('permissions', [])
                 
                 # Convert required_permissions to list if it's a string

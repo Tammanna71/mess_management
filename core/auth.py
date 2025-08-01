@@ -4,11 +4,111 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.exceptions import AuthenticationFailed
 from core.models import User
 
+"""
+OPTIMIZATION: Token-Based Role Extraction
 
+This authentication system has been optimized to extract roles and permissions 
+directly from JWT tokens instead of computing them from database queries.
+
+Benefits:
+- ✅ No database queries for role computation during authentication
+- ✅ Faster authentication (no need to check user.is_staff, user.is_superuser, etc.)
+- ✅ Reduced database load
+- ✅ Better scalability
+- ✅ Roles are computed once during token creation, not on every request
+
+How it works:
+1. During login: Roles are computed and embedded in JWT token
+2. During authentication: Roles are extracted from token (no DB queries)
+3. Fallback: If token doesn't have roles, fallback to database computation
+"""
+
+
+# -----------------------------
+# Role & permission resolution
+# -----------------------------
+def compute_user_roles(user):
+    """
+    Extract user roles based on user attributes.
+    Adjust this logic to your needs (e.g., groups, explicit user.role field).
+    """
+    roles = []
+
+    # Check user flags
+    if getattr(user, 'is_superuser', False):
+        roles.append('superuser')
+    if getattr(user, 'is_staff', False):
+        roles.append('staff')
+
+    # NOTE: name-based admin is fragile; keep if you need it temporarily.
+    name_val = (getattr(user, 'name', '') or '').strip().lower()
+    if name_val == 'admin':
+        roles.append('admin')
+
+    # Regular users (non-staff, non-superuser) -> student
+    if not getattr(user, 'is_staff', False) and not getattr(user, 'is_superuser', False):
+        roles.append('student')
+
+    # All authenticated users
+    roles.append('user')
+
+    # Deduplicate & sort for consistency
+    return sorted(set(roles))
+
+
+def get_user_permissions(user, roles):
+    """
+    Get user permissions based on roles.
+    You can replace this with Django permissions/groups if needed.
+    """
+    permissions = []
+
+    if 'superuser' in roles:
+        permissions.extend([
+            'user.create', 'user.read', 'user.update', 'user.delete',
+            'mess.create', 'mess.read', 'mess.update', 'mess.delete',
+            'booking.create', 'booking.read', 'booking.update', 'booking.delete',
+            'coupon.create', 'coupon.read', 'coupon.update', 'coupon.delete',
+            'report.read', 'report.export', 'audit.read'
+        ])
+    elif 'admin' in roles:
+        permissions.extend([
+            'user.read', 'user.update', 'user.delete',
+            'mess.create', 'mess.read', 'mess.update', 'mess.delete',
+            'booking.read', 'booking.update', 'booking.delete',
+            'coupon.create', 'coupon.read', 'coupon.update', 'coupon.delete',
+            'report.read', 'report.export', 'audit.read'
+        ])
+    elif 'staff' in roles:
+        permissions.extend([
+            'user.read',
+            'mess.read', 'mess.update',
+            'booking.read', 'booking.update',
+            'coupon.create', 'coupon.read', 'coupon.update',
+            'report.read'
+        ])
+    elif 'student' in roles:
+        permissions.extend([
+            'user.read', 'user.update',  # Typically refers to own profile
+            'mess.read',
+            'booking.create', 'booking.read', 'booking.update',  # Own bookings
+            'coupon.read',  # Own coupons
+        ])
+
+    # All authenticated users
+    permissions.extend(['auth.login', 'auth.logout', 'auth.refresh'])
+
+    return sorted(set(permissions))
+
+
+# ---------------------------------
+# Authentication with role support
+# ---------------------------------
 class CoreUserJWTAuthentication(JWTAuthentication):
     """
     JWT auth that fetches users from core_user instead of auth_user.
     Includes role-based authentication support.
+    Optimized to extract roles from JWT token instead of computing from database.
     """
 
     def get_user(self, validated_token):
@@ -29,7 +129,8 @@ class CoreUserJWTAuthentication(JWTAuthentication):
 
     def authenticate(self, request):
         """
-        Override authenticate to add role information to the user object.
+        Override authenticate to extract role information from JWT token.
+        This is more efficient as it avoids database queries for role computation.
         """
         header = self.get_header(request)
         if header is None:
@@ -41,161 +142,123 @@ class CoreUserJWTAuthentication(JWTAuthentication):
 
         validated_token = self.get_validated_token(raw_token)
         user = self.get_user(validated_token)
-        
-        # Add role information to user object for easy access
-        user.roles = self.get_user_roles(user)
-        
-        return (user, validated_token)
 
-    def get_user_roles(self, user):
-        """
-        Extract user roles based on user attributes.
-        """
-        roles = []
+        # Extract roles from JWT token instead of computing from database
+        # This is more efficient as roles are already computed and stored in token
+        user.roles = validated_token.get('roles', [])
+        user.permissions = validated_token.get('permissions', [])
         
-        # Check user permissions and add appropriate roles
-        if user.is_superuser:
-            roles.append('superuser')
-        if user.is_staff:
-            roles.append('staff')
-        if user.name.lower() == 'admin':
-            roles.append('admin')
-        
-        # Add student role for regular users (non-staff)
-        if not user.is_staff and not user.is_superuser:
-            roles.append('student')
-        
-        # Add user role for all authenticated users
-        roles.append('user')
-        
-        return list(set(roles))  # Remove duplicates
+        # Also extract other user info from token for convenience
+        user.token_name = validated_token.get('name', '')
+        user.token_email = validated_token.get('email', '')
+        user.token_phone = validated_token.get('phone', '')
+        user.token_is_staff = validated_token.get('is_staff', False)
+        user.token_is_superuser = validated_token.get('is_superuser', False)
+
+        return (user, validated_token)
 
 
 class RoleBasedJWTAuthentication(CoreUserJWTAuthentication):
     """
     Enhanced JWT authentication with role-based access control.
+    Optimized to extract roles from JWT token instead of computing from database.
     """
-    
+
     def get_user_roles(self, user):
         """
-        Enhanced role extraction with more granular roles.
+        Get user roles from token data if available, otherwise fallback to computation.
+        This maintains backward compatibility while being more efficient.
         """
-        roles = []
+        # If roles are already extracted from token, use them
+        if hasattr(user, 'roles') and user.roles:
+            return user.roles
         
-        # Superuser gets all roles
-        if user.is_superuser:
-            roles.extend(['superuser', 'admin', 'staff', 'user'])
-        # Staff users
-        elif user.is_staff:
-            roles.extend(['staff', 'user'])
-        # Admin users (by name)
-        elif user.name.lower() == 'admin':
-            roles.extend(['admin', 'user'])
-        # Regular students
-        else:
-            roles.append('student')
-            roles.append('user')
-        
-        return list(set(roles))  # Remove duplicates
+        # Fallback to computing roles (for backward compatibility)
+        return compute_user_roles(user)
 
 
+# --------------------------------------------
+# Token creation with roles (access + refresh)
+# --------------------------------------------
 def create_tokens_with_roles(user):
     """
-    Create JWT tokens with role information included in the payload.
+    Create JWT tokens with role and permission information included
+    in BOTH refresh and access token payloads.
     """
     refresh = RefreshToken.for_user(user)
-    
-    # Add custom claims including roles
-    refresh['user_id'] = user.user_id
-    refresh['name'] = user.name
-    refresh['email'] = user.email
-    refresh['phone'] = user.phone
-    
-    # Add role information
-    auth_instance = CoreUserJWTAuthentication()
-    roles = auth_instance.get_user_roles(user)
-    refresh['roles'] = roles
-    refresh['is_staff'] = user.is_staff
-    refresh['is_superuser'] = user.is_superuser
-    
-    # Add permissions based on roles
+
+    # Compute roles & permissions once
+    roles = compute_user_roles(user)
     permissions = get_user_permissions(user, roles)
+
+    # Common user info
+    user_id = getattr(user, 'id', None) or getattr(user, 'user_id', None)
+    name = getattr(user, 'name', '')
+    email = getattr(user, 'email', '')
+    phone = getattr(user, 'phone', '')
+
+    # ---- Add custom claims to REFRESH token ----
+    refresh['user_id'] = user_id
+    refresh['name'] = name
+    refresh['email'] = email
+    refresh['phone'] = phone
+    refresh['roles'] = roles
+    refresh['is_staff'] = getattr(user, 'is_staff', False)
+    refresh['is_superuser'] = getattr(user, 'is_superuser', False)
     refresh['permissions'] = permissions
-    
+
+    # ---- Add custom claims to ACCESS token as well ----
+    access = refresh.access_token
+    access['user_id'] = user_id
+    access['name'] = name
+    access['email'] = email
+    access['phone'] = phone
+    access['roles'] = roles
+    access['is_staff'] = getattr(user, 'is_staff', False)
+    access['is_superuser'] = getattr(user, 'is_superuser', False)
+    access['permissions'] = permissions
+
     return {
         'refresh': str(refresh),
-        'access': str(refresh.access_token),
+        'access': str(access),
         'user_info': {
-            'user_id': user.user_id,
-            'name': user.name,
-            'email': user.email,
-            'phone': user.phone,
+            'user_id': user_id,
+            'name': name,
+            'email': email,
+            'phone': phone,
             'roles': roles,
             'permissions': permissions
         }
     }
 
 
-def get_user_permissions(user, roles):
-    """
-    Get user permissions based on roles.
-    """
-    permissions = []
-    
-    if 'superuser' in roles:
-        permissions.extend([
-            'user.create', 'user.read', 'user.update', 'user.delete',
-            'mess.create', 'mess.read', 'mess.update', 'mess.delete',
-            'booking.create', 'booking.read', 'booking.update', 'booking.delete',
-            'coupon.create', 'coupon.read', 'coupon.update', 'coupon.delete',
-            'report.read', 'report.export', 'audit.read'
-        ])
-    elif 'admin' in roles:
-        permissions.extend([
-            'user.read', 'user.update',
-            'mess.create', 'mess.read', 'mess.update', 'mess.delete',
-            'booking.read', 'booking.update', 'booking.delete',
-            'coupon.create', 'coupon.read', 'coupon.update', 'coupon.delete',
-            'report.read', 'report.export', 'audit.read'
-        ])
-    elif 'staff' in roles:
-        permissions.extend([
-            'user.read',
-            'mess.read', 'mess.update',
-            'booking.read', 'booking.update',
-            'coupon.create', 'coupon.read', 'coupon.update',
-            'report.read'
-        ])
-    elif 'student' in roles:
-        permissions.extend([
-            'user.read', 'user.update',  # Can read/update own profile
-            'mess.read',
-            'booking.create', 'booking.read', 'booking.update',  # Own bookings only
-            'coupon.read',  # Own coupons only
-        ])
-    
-    # All authenticated users get these basic permissions
-    permissions.extend(['auth.login', 'auth.logout', 'auth.refresh'])
-    
-    return list(set(permissions))  # Remove duplicates
-
-
+# ------------------------------------
+# Quick server-side verification utils
+# ------------------------------------
 def verify_user_permission(user, required_permission):
     """
     Verify if user has a specific permission.
+    Optimized to use token-based permissions if available.
     """
-    auth_instance = CoreUserJWTAuthentication()
-    roles = auth_instance.get_user_roles(user)
-    permissions = get_user_permissions(user, roles)
+    # If permissions are already extracted from token, use them
+    if hasattr(user, 'permissions') and user.permissions:
+        return required_permission in user.permissions
     
+    # Fallback to computing permissions (for backward compatibility)
+    roles = compute_user_roles(user)
+    permissions = get_user_permissions(user, roles)
     return required_permission in permissions
 
 
 def verify_user_role(user, required_role):
     """
     Verify if user has a specific role.
+    Optimized to use token-based roles if available.
     """
-    auth_instance = CoreUserJWTAuthentication()
-    roles = auth_instance.get_user_roles(user)
+    # If roles are already extracted from token, use them
+    if hasattr(user, 'roles') and user.roles:
+        return required_role in user.roles
     
+    # Fallback to computing roles (for backward compatibility)
+    roles = compute_user_roles(user)
     return required_role in roles

@@ -339,6 +339,7 @@ class UserPydantic(BaseModel):
     name: str = Field(..., min_length=2, max_length=50, description="Full name of the user")
     phone: str = Field(..., description="Phone number in any valid format")
     email: str = Field(..., description="Valid email address")
+    password: str = Field(..., min_length=6, description="User password")
     roll_no: Optional[str] = Field(None, max_length=15, description="Student roll number")
     room_no: Optional[str] = Field(None, max_length=10, description="Room number")
     is_active: Optional[bool] = Field(True, description="User account status")
@@ -352,8 +353,8 @@ class UserPydantic(BaseModel):
     _validate_room_no = validator("room_no", allow_reuse=True)(validate_room_number)
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "name": "John Doe",
                 "phone": "+1-555-123-4567",
@@ -376,8 +377,8 @@ class MessPydantic(BaseModel):
     _validate_location = validator("location", allow_reuse=True)(lambda v: not_empty(v, "Location"))
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "name": "Main Campus Mess",
                 "location": "Block A, Ground Floor",
@@ -402,8 +403,8 @@ class MealTypePydantic(BaseModel):
     _validate_session_time = validator("session_time", allow_reuse=True)(validate_session_time)
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "mess_id": 1,
                 "type": "Breakfast",
@@ -432,8 +433,8 @@ class CouponPydantic(BaseModel):
     _validate_session_time = validator("session_time", allow_reuse=True)(validate_session_time)
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "user_id": 1,
                 "mess_id": 1,
@@ -455,8 +456,8 @@ class FeedbackPydantic(BaseModel):
     _validate_text = validator("text", allow_reuse=True)(lambda v: not_empty(v, "Feedback"))
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "user_id": 1,
                 "mess_id": 1,
@@ -473,8 +474,8 @@ class NotificationPydantic(BaseModel):
     _validate_message = validator("message", allow_reuse=True)(lambda v: not_empty(v, "Message"))
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "user_id": 1,
                 "message": "Your meal booking for tomorrow has been confirmed."
@@ -486,18 +487,18 @@ class NotificationPydantic(BaseModel):
 class AttendancePydantic(BaseModel):
     user_id: int = Field(..., gt=0, description="User ID")
     mess_id: int = Field(..., gt=0, description="Mess ID")
-    date: date = Field(..., description="Attendance date")
+    attendance_date: date = Field(..., description="Attendance date")
     present: bool = Field(..., description="Attendance status")
 
-    _validate_date = validator("date", allow_reuse=True)(validate_future_date)
+    _validate_attendance_date = validator("attendance_date", allow_reuse=True)(validate_future_date)
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "user_id": 1,
                 "mess_id": 1,
-                "date": "2024-01-15",
+                "attendance_date": "2024-01-15",
                 "present": True
             }
         }
@@ -514,8 +515,8 @@ class BookingPydantic(BaseModel):
     _validate_session_time = validator("session_time", allow_reuse=True)(validate_session_time)
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "user_id": 1,
                 "mess_id": 1,
@@ -535,8 +536,8 @@ class AuditLogPydantic(BaseModel):
     _validate_details = validator("details", allow_reuse=True)(lambda v: not_empty(v, "Details"))
 
     class Config:
-        orm_mode = True
-        schema_extra = {
+        from_attributes = True
+        json_schema_extra = {
             "example": {
                 "action": "User Registration",
                 "performed_by": 1,

@@ -32,6 +32,7 @@ The Mess Management System is a web-based application designed to streamline and
 - [Docker](https://www.docker.com/get-started)
 - [Docker Compose](https://docs.docker.com/compose/)
 - Python 3.8+
+- pydantic<2.0
 
 ### Setup Instructions
 

@@ -9,13 +9,14 @@ from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework import status, permissions
 from django.shortcuts import get_object_or_404
-from .models import User, Mess, MealType, Coupon, Menu, Feedback, MessItems, MonthlyAttendance, Organization, Status, Booking, Notification, Booking, AuditLog
+from .models import User, Mess, MealType, Coupon, Menu, Feedback, MessItems, MonthlyAttendance, Organization, Status, Booking, Notification, AuditLog
 
 from .serializers import UserSerializer, MessSerializer, RegisterSerializer, MealTypeSerializer, CouponSerializer, BookingSerializer, NotificationSerializer, MessUsageReportSerializer, AuditLogSerializer
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from django.contrib.auth.hashers import check_password
 from rest_framework_simplejwt.tokens import RefreshToken
-from core.permissions import IsSelfOrAdmin, HasRole, HasPermission, AdminOrStaff, CanManageUsers, CanViewReports
+from core.permissions import IsSelfOrAdmin, HasRole, HasPermission, AdminOrStaff, has_role, has_permission
+from core.auth import create_tokens_with_roles
 import uuid
 
 # Add Pydantic imports
@@ -201,7 +202,20 @@ class StudentLoginView(BaseLoginMixin):
         phone = request.data.get("phone")
         password = request.data.get("password")
 
-        user = get_object_or_404(User, phone=phone)
+        # Validate input
+        if not phone or not password:
+            return Response(
+                {"detail": "Phone number and password are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(phone=phone)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Invalid credentials"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
         # Block admin from using the student endpoint
         if user.name.lower() == "admin":
@@ -213,21 +227,34 @@ class StudentLoginView(BaseLoginMixin):
         if check_password(password, user.password):
             return self._issue_tokens(user)
 
-        return Response({"detail": "Invalid credentials"}, status=401)
+        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class AdminLoginView(BaseLoginMixin):
     """
-    Only the user named 'admin' may log in here.
+    Only admin users may log in here.
     """
     def post(self, request):
         phone = request.data.get("phone")
         password = request.data.get("password")
 
-        user = get_object_or_404(User, phone=phone)
+        # Validate input
+        if not phone or not password:
+            return Response(
+                {"detail": "Phone number and password are required"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        # Must be admin
-        if user.name.lower() != "admin":
+        try:
+            user = User.objects.get(phone=phone)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Invalid credentials"},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        # Check if user is admin (staff or superuser)
+        if not (user.is_staff or user.is_superuser):
             return Response(
                 {"detail": "Only admin can use this endpoint"},
                 status=status.HTTP_403_FORBIDDEN,
@@ -236,14 +263,15 @@ class AdminLoginView(BaseLoginMixin):
         if check_password(password, user.password):
             return self._issue_tokens(user)
 
-        return Response({"detail": "Invalid credentials"}, status=401)
+        return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
     
 
 class MealSlotView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        if request.user.name.lower() != "admin":
+        # Check if user is admin (staff or superuser)
+        if not (request.user.is_staff or request.user.is_superuser):
             return Response({"detail": "Only admin can create meal slots"}, status=403)
 
         serializer = MealTypeSerializer(data=request.data)
@@ -262,8 +290,10 @@ class MealSlotView(APIView):
 class MealSlotDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
-    def get_permissions(self):
-        return [IsAuthenticated(), IsAdminUser()]
+    def get(self, request, slot_id):
+        slot = get_object_or_404(MealType, id=slot_id)
+        serializer = MealTypeSerializer(slot)
+        return Response(serializer.data)
 
     def put(self, request, slot_id):
         slot = get_object_or_404(MealType, id=slot_id)
@@ -431,13 +461,19 @@ class MealAvailabilityView(APIView):
         if user.is_staff:
             slots = MealType.objects.filter(available=True)
         else:
-            slots = MealType.objects.filter(mess=user.mess, available=True)
+            # For students, show all available slots since they don't have a specific mess
+            slots = MealType.objects.filter(available=True)
 
         serializer = MealTypeSerializer(slots, many=True)
         return Response(serializer.data)
 
 class NotificationView(APIView):
     permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def get(self, request):
+        notifications = Notification.objects.all().order_by('-created_at')
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data)
 
     def post(self, request):
         serializer = NotificationSerializer(data=request.data)
@@ -520,20 +556,24 @@ class AuditLogView(APIView):
 class TokenInfoView(APIView):
     """
     View to demonstrate role-based token information.
+    Optimized to use token-based roles and permissions.
     """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         """
         Return current user's token information including roles and permissions.
+        Uses token-based data for better performance.
         """
-        # Get user roles from the authentication
-        auth_instance = CoreUserJWTAuthentication()
-        roles = auth_instance.get_user_roles(request.user)
+        # Get roles and permissions from token (already extracted during authentication)
+        roles = getattr(request.user, 'roles', [])
+        permissions = getattr(request.user, 'permissions', [])
         
-        # Get user permissions
-        from core.auth import get_user_permissions
-        permissions = get_user_permissions(request.user, roles)
+        # If not available from token, fallback to computation (for backward compatibility)
+        if not roles:
+            from core.auth import compute_user_roles, get_user_permissions
+            roles = compute_user_roles(request.user)
+            permissions = get_user_permissions(request.user, roles)
         
         return Response({
             "user_info": {
@@ -548,7 +588,8 @@ class TokenInfoView(APIView):
             "permissions": permissions,
             "token_info": {
                 "message": "This endpoint shows your current roles and permissions",
-                "note": "Roles and permissions are automatically included in JWT tokens"
+                "note": "Roles and permissions are extracted from JWT token for better performance",
+                "optimization": "No database queries needed for role computation"
             }
         })
 
@@ -557,7 +598,7 @@ class RoleBasedTestView(APIView):
     """
     Test view to demonstrate role-based access control.
     """
-    permission_classes = [HasRole(['admin', 'staff'])]
+    permission_classes = [has_role(['admin', 'staff'])]
 
     def get(self, request):
         return Response({
@@ -571,7 +612,7 @@ class PermissionBasedTestView(APIView):
     """
     Test view to demonstrate permission-based access control.
     """
-    permission_classes = [HasPermission(['user.read', 'mess.read'])]
+    permission_classes = [has_permission(['user.read', 'mess.read'])]
 
     def get(self, request):
         return Response({
@@ -585,7 +626,7 @@ class SuperUserOnlyView(APIView):
     """
     View accessible only to superusers.
     """
-    permission_classes = [HasRole('superuser')]
+    permission_classes = [has_role('superuser')]
 
     def get(self, request):
         return Response({
@@ -599,7 +640,7 @@ class StudentOnlyView(APIView):
     """
     View accessible only to students.
     """
-    permission_classes = [HasRole('student')]
+    permission_classes = [has_role('student')]
 
     def get(self, request):
         return Response({
@@ -613,7 +654,7 @@ class FlexiblePermissionView(APIView):
     """
     Test view demonstrating flexible permission checking (ANY permission).
     """
-    permission_classes = [HasPermission(['user.read', 'mess.read', 'booking.read'], require_all=False)]
+    permission_classes = [has_permission(['user.read', 'mess.read', 'booking.read'], require_all=False)]
 
     def get(self, request):
         return Response({
@@ -628,8 +669,8 @@ class ComplexPermissionView(APIView):
     Test view demonstrating complex permission requirements.
     """
     permission_classes = [
-        HasRole('admin'),  # Must be admin
-        HasPermission('user.delete')  # AND have delete permission
+        has_role('admin'),  # Must be admin
+        has_permission('user.delete')  # AND have delete permission
     ]
 
     def get(self, request):
