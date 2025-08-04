@@ -1,7 +1,7 @@
-from pydantic import BaseModel, EmailStr, validator, Field
-from typing import Optional, List
+from pydantic import BaseModel, validator, Field
+from typing import Optional
 from decimal import Decimal
-from datetime import date, datetime
+from datetime import date
 import re
 
 

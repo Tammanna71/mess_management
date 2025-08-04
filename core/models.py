@@ -8,25 +8,30 @@ from django.utils import timezone
 from datetime import timedelta
 
 
+#manages the creation of custom user model
 class UserManager(BaseUserManager):
     def create_user(self, phone, password=None, **extra_fields):
+        #phone number us mandatory field as it is required during log in 
         if not phone:
             raise ValueError("Phone number is required")
 
+        #checks if user is admin or not
         is_admin = extra_fields.get('is_staff') or extra_fields.get('is_superuser')
 
-    # Enforce roll_no for students only
+        # Enforce roll_no for students only
         if not is_admin:
             if not extra_fields.get('roll_no'):
                 raise ValueError("Roll number is required for students")
             # if not extra_fields.get('room_no'):
             #     raise ValueError("Room number is required for students")   #localites can also eat mess food
 
+        # creates and saves user with hashed password
         user = self.model(phone=phone, **extra_fields)
         user.set_password(password)
-        user.save(using=self._db)
+        user.save(using=self._db)      # saves the user to db
         return user
 
+    #creating admin users 
     def create_superuser(self, phone, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
@@ -34,6 +39,7 @@ class UserManager(BaseUserManager):
 
         return self.create_user(phone, password, **extra_fields)
 
+#custom user model
 class User(AbstractBaseUser, PermissionsMixin):
     user_id = models.BigAutoField(primary_key=True)
     name = models.CharField(max_length=100)
@@ -44,8 +50,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     password = models.CharField(max_length=130)
     last_login = models.DateTimeField(null=True, blank=True)
 
-    # These are required for admin compatibility
-    # Quick admin access & permission bypass
+    # user permission fields
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
@@ -57,10 +62,14 @@ class User(AbstractBaseUser, PermissionsMixin):
     #required for creating superuser
     REQUIRED_FIELDS = ['email', 'name', 'roll_no']
 
+    #use the custom manager
     objects = UserManager()
 
+    # user name will be displayed
     def __str__(self):
         return self.name
+
+
 
 class Mess(models.Model):
     mess_id = models.BigAutoField(primary_key=True)
@@ -68,7 +77,7 @@ class Mess(models.Model):
     location = models.CharField(max_length=100, null=True, blank=True)
     availability = models.BooleanField(default=True)
     stock = models.IntegerField(null=True, blank=True)
-    admin = models.CharField(max_length=100, null=True, blank=True)
+    admin = models.CharField(max_length=100, null=True, blank=True)   # who is running mess
     current_status = models.CharField(max_length=100, null=True, blank=True)
     bookings = models.IntegerField(null=True, blank=True)
     menu = models.CharField(max_length=255, null=True, blank=True)
