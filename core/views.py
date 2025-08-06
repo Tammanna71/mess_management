@@ -66,6 +66,15 @@ def health_check(request):
 def home(request):
     return JsonResponse({"message": "Welcome to Mess Management"})
 
+def cors_test(request):
+    """Simple endpoint to test CORS configuration"""
+    return JsonResponse({
+        "message": "CORS test successful",
+        "origin": request.META.get('HTTP_ORIGIN', 'No origin header'),
+        "method": request.method,
+        "headers": dict(request.headers)
+    })
+
 #list users
 class UserListView(APIView):
     permission_classes = [IsAdminUser]
