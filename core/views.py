@@ -477,10 +477,16 @@ class MealAvailabilityView(APIView):
         return Response(serializer.data)
 
 class NotificationView(APIView):
-    permission_classes = [IsAuthenticated, IsAdminUser]
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        notifications = Notification.objects.all().order_by('-created_at')
+        if request.user.is_staff:
+            # Admin/staff can see all notifications
+            notifications = Notification.objects.all().order_by('-created_at')
+        else:
+            # Students can only see their own notifications
+            notifications = Notification.objects.filter(user=request.user).order_by('-created_at')
+        
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data)
 
@@ -590,8 +596,12 @@ class TokenInfoView(APIView):
                 "name": request.user.name,
                 "email": request.user.email,
                 "phone": request.user.phone,
+                "roll_no": request.user.roll_no,
+                "room_no": request.user.room_no,
                 "is_staff": request.user.is_staff,
                 "is_superuser": request.user.is_superuser,
+                "roles": roles,
+                "permissions": permissions,
             },
             "roles": roles,
             "permissions": permissions,

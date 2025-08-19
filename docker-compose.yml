@@ -26,6 +26,7 @@ services:
       - db
     environment:
       DEBUG: "1"
+      DOCKER_ENV: "1"
       DB_NAME: messdatabase
       DB_USER: admin
       DB_PASSWORD: 12345
