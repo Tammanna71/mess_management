@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Utensils, Phone, Lock, Users, Shield, GraduationCap, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { Utensils, Phone, Lock, Shield, GraduationCap, Eye, EyeOff, AlertTriangle } from 'lucide-react';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const Login = () => {
@@ -34,10 +34,8 @@ const Login = () => {
 			console.log('User is_staff:', result.user?.is_staff);
 			console.log('Selected role:', role);
 
-			if (result.user?.is_superuser) {
+			if (result.user?.is_superuser || result.user?.is_staff) {
 				navigate('/admin');
-			} else if (result.user?.is_staff) {
-				navigate('/staff');
 			} else {
 				navigate('/student');
 			}
@@ -55,8 +53,6 @@ const Login = () => {
 		switch (roleType) {
 			case 'admin':
 				return <Shield className="w-5 h-5" />;
-			case 'staff':
-				return <Users className="w-5 h-5" />;
 			default:
 				return <GraduationCap className="w-5 h-5" />;
 		}
@@ -66,8 +62,6 @@ const Login = () => {
 		switch (roleType) {
 			case 'admin':
 				return 'from-red-500 to-red-600';
-			case 'staff':
-				return 'from-blue-500 to-blue-600';
 			default:
 				return 'from-orange-500 to-orange-600';
 		}
@@ -116,7 +110,7 @@ const Login = () => {
 							</div>
 							<div className="flex items-center space-x-4">
 								<div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-									<Users className="w-6 h-6" />
+									<Shield className="w-6 h-6" />
 								</div>
 								<div className="text-left">
 									<h3 className="font-semibold">User Management</h3>
@@ -169,8 +163,8 @@ const Login = () => {
 									<label htmlFor="role" className="block text-sm font-semibold text-gray-700 mb-3">
 										Select Your Role
 									</label>
-									<div className="grid grid-cols-3 gap-3">
-										{['student', 'staff', 'admin'].map((roleType) => (
+									<div className="grid grid-cols-2 gap-3">
+										{['student', 'admin'].map((roleType) => (
 											<button
 												key={roleType}
 												type="button"

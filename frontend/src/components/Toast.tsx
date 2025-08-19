@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, AlertCircle, Info, X } from 'lucide-react';
 
 interface ToastProps {
 	id: string;
@@ -46,15 +45,15 @@ const Toast: React.FC<ToastProps> = ({
 	const getIcon = () => {
 		switch (type) {
 			case 'success':
-				return <CheckCircle className="w-5 h-5 text-green-500" />;
+				return <span className="text-green-500 text-xl">✓</span>;
 			case 'error':
-				return <XCircle className="w-5 h-5 text-red-500" />;
+				return <span className="text-red-500 text-xl">✗</span>;
 			case 'warning':
-				return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+				return <span className="text-yellow-500 text-xl">⚠</span>;
 			case 'info':
-				return <Info className="w-5 h-5 text-blue-500" />;
+				return <span className="text-blue-500 text-xl">ℹ</span>;
 			default:
-				return <Info className="w-5 h-5 text-blue-500" />;
+				return <span className="text-blue-500 text-xl">ℹ</span>;
 		}
 	};
 
@@ -96,7 +95,7 @@ const Toast: React.FC<ToastProps> = ({
 					onClick={handleClose}
 					className="ml-4 flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors duration-200"
 				>
-					<X className="w-4 h-4" />
+					<span className="text-xl">×</span>
 				</button>
 			</div>
 		</div>

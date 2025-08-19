@@ -45,7 +45,7 @@ class ApiService {
 					try {
 						const tokens = authService.getTokens();
 						if (tokens?.refresh) {
-							const response = await axios.post('http://localhost:8000/api/auth/refresh/', {
+							const response = await axios.post('http://localhost:8000/api/auth/token/refresh/', {
 								refresh: tokens.refresh,
 							});
 
@@ -128,53 +128,53 @@ class ApiService {
 
 	// Meal Slots
 	async getMealSlots() {
-		return this.get('/meal-slot');
+		return this.get('/meal-slot/');
 	}
 
 	async createMealSlot(form: any) {
-		return this.post('/meal-slot', form);
+		return this.post('/meal-slot/', form);
 	}
 
 	async updateMealSlot(slotId: number, data: any) {
-		return this.put(`/meal-slot/${slotId}`, data);
+		return this.put(`/meal-slot/${slotId}/`, data);
 	}
 
 	async deleteMealSlot(slotId: string) {
-		return this.delete(`/meal-slot/${slotId}`);
+		return this.delete(`/meal-slot/${slotId}/`);
 	}
 
 	// Bookings
 	async getBookings() {
-		return this.get('/booking');
+		return this.get('/booking/');
 	}
 
 	async createBooking(form: any) {
-		return this.post('/booking', form);
+		return this.post('/booking/', form);
 	}
 
 	async deleteBooking(bookingId: string) {
-		return this.delete(`/booking/${bookingId}`);
+		return this.delete(`/booking/${bookingId}/`);
 	}
 
 	async getBookingHistory(userId: string) {
-		return this.get(`/history/${userId}`);
+		return this.get(`/history/${userId}/`);
+	}
+
+	async getMealAvailability() {
+		return this.get('/booking/availability/');
 	}
 
 	// Coupons
 	async getMyCoupons() {
-		return this.get('/coupons/my');
-	}
-
-	async getCoupons() {
-		return this.get('/coupons/my'); // Using same endpoint as getMyCoupons for now
+		return this.get('/coupons/my/');
 	}
 
 	async generateCoupon(form: any) {
-		return this.post('/coupon', form);
+		return this.post('/coupon/', form);
 	}
 
 	async validateCoupon(couponId: string) {
-		return this.post('/coupon/validate', { couponId });
+		return this.post('/coupon/validate/', { couponId });
 	}
 
 	// Notifications
@@ -188,16 +188,16 @@ class ApiService {
 
 	// Reports
 	async getMessUsageReport() {
-		return this.get('/report/mess-usage');
+		return this.get('/report/mess-usage/');
 	}
 
 	async exportReport() {
-		return this.get('/report/export');
+		return this.get('/report/export/');
 	}
 
 	// Audit Logs
 	async getAuditLogs() {
-		return this.get('/audit-logs');
+		return this.get('/audit-logs/');
 	}
 
 	// Token Info

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { apiService } from '../services/api';
 import LoadingAnimation from '../components/LoadingAnimation';
-import { useToast } from '../../hooks/useToast';
+import { useToast } from '../hooks/useToast';
 import ToastContainer from '../components/ToastContainer';
 
 interface Mess {
@@ -22,6 +22,18 @@ interface Mess {
 const Messes = () => {
 	const [messes, setMesses] = useState<Mess[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [showCreateForm, setShowCreateForm] = useState(false);
+	const [formData, setFormData] = useState({
+		name: '',
+		location: '',
+		availability: true,
+		stock: '',
+		admin: '',
+		current_status: 'Active',
+		bookings: 0,
+		menu: ''
+	});
+	const [formLoading, setFormLoading] = useState(false);
 	const { toasts, removeToast, error: showError, success: showSuccess } = useToast();
 
 	useEffect(() => {
@@ -33,9 +45,51 @@ const Messes = () => {
 			const response = await apiService.getAllMess();
 			setMesses(response);
 		} catch (err: any) {
-			setError(err.response?.data?.message || 'Failed to load messes');
+			showError('Failed to load messes', err.response?.data?.message || 'Please try again later');
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+		const { name, value, type } = e.target;
+		let processedValue: any = value;
+		
+		if (type === 'checkbox') {
+			processedValue = (e.target as HTMLInputElement).checked;
+		} else if (name === 'stock' || name === 'bookings') {
+			processedValue = parseInt(value) || 0;
+		}
+		
+		setFormData(prev => ({
+			...prev,
+			[name]: processedValue
+		}));
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setFormLoading(true);
+
+		try {
+			await apiService.createMess(formData);
+			showSuccess('Mess created successfully!');
+			setFormData({
+				name: '',
+				location: '',
+				availability: true,
+				stock: '',
+				admin: '',
+				current_status: 'Active',
+				bookings: 0,
+				menu: ''
+			});
+			setShowCreateForm(false);
+			fetchMesses(); // Refresh the list
+		} catch (err: any) {
+			showError('Failed to create mess', err.response?.data?.message || 'Please try again later');
+		} finally {
+			setFormLoading(false);
 		}
 	};
 
@@ -47,9 +101,141 @@ const Messes = () => {
 		<div className="min-h-screen bg-gray-100 p-6">
 			<div className="max-w-7xl mx-auto">
 				<div className="mb-8">
-					<h1 className="text-3xl font-bold text-gray-900">Messes</h1>
-					<p className="text-gray-600">View and manage all messes</p>
+					<div className="flex justify-between items-center">
+						<div>
+							<h1 className="text-3xl font-bold text-gray-900">Messes</h1>
+							<p className="text-gray-600">View and manage all messes</p>
+						</div>
+						<button
+							onClick={() => setShowCreateForm(!showCreateForm)}
+							className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+						>
+							{showCreateForm ? 'Cancel' : 'Create Mess'}
+						</button>
+					</div>
 				</div>
+
+				{/* Create Mess Form */}
+				{showCreateForm && (
+					<div className="mb-8 bg-white shadow rounded-lg p-6">
+						<h2 className="text-xl font-semibold text-gray-900 mb-4">Create New Mess</h2>
+						<form onSubmit={handleSubmit} className="space-y-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Mess Name
+									</label>
+									<input
+										type="text"
+										name="name"
+										value={formData.name}
+										onChange={handleInputChange}
+										required
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+										placeholder="Enter mess name"
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Location
+									</label>
+									<input
+										type="text"
+										name="location"
+										value={formData.location}
+										onChange={handleInputChange}
+										required
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+										placeholder="Enter location"
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Stock
+									</label>
+									<input
+										type="number"
+										name="stock"
+										value={formData.stock}
+										onChange={handleInputChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+										placeholder="Enter stock capacity"
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Admin
+									</label>
+									<input
+										type="text"
+										name="admin"
+										value={formData.admin}
+										onChange={handleInputChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+										placeholder="Enter admin name"
+									/>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Status
+									</label>
+									<select
+										name="current_status"
+										value={formData.current_status}
+										onChange={handleInputChange}
+										required
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+									>
+										<option value="Active">Active</option>
+										<option value="Inactive">Inactive</option>
+										<option value="Maintenance">Maintenance</option>
+									</select>
+								</div>
+								<div>
+									<label className="block text-sm font-medium text-gray-700 mb-1">
+										Menu
+									</label>
+									<input
+										type="text"
+										name="menu"
+										value={formData.menu}
+										onChange={handleInputChange}
+										className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+										placeholder="Enter menu description"
+									/>
+								</div>
+							</div>
+							<div className="flex items-center space-x-6">
+								<label className="flex items-center">
+									<input
+										type="checkbox"
+										name="availability"
+										checked={formData.availability}
+										onChange={handleInputChange}
+										className="mr-2"
+									/>
+									<span className="text-sm text-gray-700">Available</span>
+								</label>
+							</div>
+							<div className="flex justify-end space-x-3">
+								<button
+									type="button"
+									onClick={() => setShowCreateForm(false)}
+									className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+								>
+									Cancel
+								</button>
+								<button
+									type="submit"
+									disabled={formLoading}
+									className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
+								>
+									{formLoading ? 'Creating...' : 'Create Mess'}
+								</button>
+							</div>
+						</form>
+					</div>
+				)}
 
 
 

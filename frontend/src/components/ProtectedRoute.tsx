@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { ProtectedRouteProps } from '../types';
-import { hasRequiredRole } from '../utils/helpers';
+import { hasRequiredRole, hasPermission } from '../utils/helpers';
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 	children,
@@ -59,7 +59,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 	// Check permission requirements
 	if (requiredPermissions.length > 0) {
 		const hasAllRequiredPermissions = requiredPermissions.every(permission =>
-			user.user_permissions.includes(permission)
+			hasPermission(user, permission)
 		);
 
 		if (!hasAllRequiredPermissions) {

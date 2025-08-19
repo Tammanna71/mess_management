@@ -1,8 +1,8 @@
 import { AuthTokens } from '../types';
 
 class AuthService {
-	private readonly ACCESS_TOKEN_KEY = 'access_token';
-	private readonly REFRESH_TOKEN_KEY = 'refresh_token';
+	private readonly ACCESS_TOKEN_KEY = 'access';
+	private readonly REFRESH_TOKEN_KEY = 'refresh';
 
 	setTokens(tokens: AuthTokens): void {
 		localStorage.setItem(this.ACCESS_TOKEN_KEY, tokens.access);

@@ -28,10 +28,10 @@ export interface LoginCredentials {
 }
 
 export interface RegisterData {
-	username: string;
+	name: string;
 	email: string;
 	password: string;
-	name: string;
+	phone: string;
 	roll_no?: string;
 	room_no?: string;
 }
@@ -113,21 +113,19 @@ export interface Notification {
 
 // Report Types
 export interface MessUsageReport {
+	mess_id: number;
 	mess_name: string;
-	total_bookings: number;
-	total_users: number;
-	usage_percentage: number;
+	total_meals: number;
+	unique_users: number;
 }
 
 // Audit Log Types
 export interface AuditLog {
 	id: string;
-	user: string;
 	action: string;
-	resource: string;
+	performed_by: string;
+	timestamp: string;
 	details: string;
-	ip_address: string;
-	created_at: string;
 }
 
 // API Response Types
@@ -148,31 +146,39 @@ export interface PaginatedResponse<T> {
 export interface MessForm {
 	name: string;
 	location: string;
-	capacity: number;
-	description?: string;
+	availability: boolean;
+	stock?: number;
+	admin?: string;
+	current_status?: string;
+	menu?: string;
 }
 
 export interface MealSlotForm {
-	mess: string;
-	meal_type: string;
-	session_time: string;
-	delay_minutes: number;
+	mess: number;
+	type: string;
+	available: boolean;
+	session_time: number;
+	delayed: boolean;
+	delay_minutes?: number;
+	reserve_meal: boolean;
 }
 
 export interface BookingForm {
-	meal_slot: string;
-	booking_date: string;
+	userId: number;
+	mealSlotId: number;
 }
 
 export interface CouponForm {
-	mess: string;
-	discount_percentage: number;
+	studentId: number;
+	messId: number;
+	meal_type: string;
+	session_time: number;
+	location: string;
 }
 
 export interface NotificationForm {
 	title: string;
 	message: string;
-	user?: string;
 }
 
 // Component Props Types
@@ -203,7 +209,7 @@ export interface AuthContextType {
 }
 
 // Utility Types
-export type UserRole = 'admin' | 'staff' | 'student' | 'superuser';
+export type UserRole = 'admin' | 'student' | 'superuser';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner';
 

@@ -16,9 +16,23 @@ export const isStudent = (user: User | null): boolean => {
 export const hasRequiredRole = (user: User | null, requiredRoles: string[]): boolean => {
 	if (!user) return false;
 
+	// First check if user has superuser privileges
 	if (user.is_superuser) return true;
+	
+	// Check if user has any of the required roles in their roles array
+	if (user.roles && user.roles.length > 0) {
+		for (const role of requiredRoles) {
+			if (user.roles.includes(role)) {
+				return true;
+			}
+		}
+	}
+	
+	// Fallback to checking is_staff flag for staff/admin roles
 	if (user.is_staff && requiredRoles.includes('staff')) return true;
-	if (requiredRoles.includes('admin') && user.is_superuser) return true;
+	if (requiredRoles.includes('admin') && user.is_staff) return true;
+	
+	// Check for student role (non-staff, non-superuser)
 	if (requiredRoles.includes('student') && !user.is_superuser && !user.is_staff) return true;
 
 	return false;
@@ -33,17 +47,26 @@ export const getUserRole = (user: User | null): UserRole => {
 // Permission checking functions
 export const hasPermission = (user: User | null, permission: string): boolean => {
 	if (!user) return false;
-	return user.user_permissions.includes(permission);
+	// Check both permissions arrays for compatibility
+	if (user.permissions && user.permissions.includes(permission)) return true;
+	if (user.user_permissions && user.user_permissions.includes(permission)) return true;
+	return false;
 };
 
 export const hasAnyPermission = (user: User | null, permissions: string[]): boolean => {
 	if (!user) return false;
-	return permissions.some(permission => user.user_permissions.includes(permission));
+	// Check both permissions arrays for compatibility
+	if (user.permissions && permissions.some(permission => user.permissions.includes(permission))) return true;
+	if (user.user_permissions && permissions.some(permission => user.user_permissions.includes(permission))) return true;
+	return false;
 };
 
 export const hasAllPermissions = (user: User | null, permissions: string[]): boolean => {
 	if (!user) return false;
-	return permissions.every(permission => user.user_permissions.includes(permission));
+	// Check both permissions arrays for compatibility
+	if (user.permissions && permissions.every(permission => user.permissions.includes(permission))) return true;
+	if (user.user_permissions && permissions.every(permission => user.user_permissions.includes(permission))) return true;
+	return false;
 };
 
 // Date and time utilities

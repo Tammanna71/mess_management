@@ -9,7 +9,6 @@ import ErrorBoundary from './components/ErrorBoundry';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import DashboardAdmin from './pages/DashboardAdmin';
-import DashboardStaff from './pages/DashboardStaff';
 import DashboardStudent from './pages/DashboardStudent';
 import Users from './pages/Users';
 import UserDetails from './pages/UserDetails';
@@ -40,11 +39,9 @@ const DashboardRedirect: React.FC = () => {
     return <Navigate to="/" replace />;
   }
 
-  const isAdmin = user.is_superuser;
-  const isStaff = user.is_staff || user.is_superuser;
+  const isAdmin = user.is_superuser || user.is_staff;
 
   if (isAdmin) return <Navigate to="/admin" replace />;
-  if (isStaff) return <Navigate to="/staff" replace />;
   return <Navigate to="/student" replace />;
 };
 
@@ -66,29 +63,28 @@ const AppContent: React.FC = () => {
 
         {/* Dashboards */}
         <Route path="/admin" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><DashboardAdmin /></ProtectedRoute>} />
-        <Route path="/staff" element={<ProtectedRoute requiredRoles={["staff", "admin", "superuser"]}><DashboardStaff /></ProtectedRoute>} />
         <Route path="/student" element={<ProtectedRoute requiredRoles={["student"]}><DashboardStudent /></ProtectedRoute>} />
 
         {/* User Management */}
-        <Route path="/users" element={<ProtectedRoute requiredRoles={["admin", "staff", "superuser"]}><Users /></ProtectedRoute>} />
-        <Route path="/user/:userId" element={<ProtectedRoute requiredRoles={["admin", "staff", "superuser"]}><UserDetails /></ProtectedRoute>} />
+        <Route path="/users" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><Users /></ProtectedRoute>} />
+        <Route path="/user/:userId" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><UserDetails /></ProtectedRoute>} />
 
         {/* Mess Management */}
-        <Route path="/messes" element={<ProtectedRoute requiredRoles={["admin", "staff", "superuser"]}><Messes /></ProtectedRoute>} />
-        <Route path="/mess/:messId" element={<ProtectedRoute requiredRoles={["admin", "staff", "superuser"]}><MessDetails /></ProtectedRoute>} />
+        <Route path="/messes" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><Messes /></ProtectedRoute>} />
+        <Route path="/mess/:messId" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><MessDetails /></ProtectedRoute>} />
 
         {/* Meal Slots */}
-        <Route path="/meal-slots" element={<ProtectedRoute requiredRoles={["admin", "staff", "superuser"]}><MealSlots /></ProtectedRoute>} />
+        <Route path="/meal-slots" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><MealSlots /></ProtectedRoute>} />
 
         {/* Bookings */}
-        <Route path="/bookings" element={<ProtectedRoute requiredRoles={["admin", "staff", "superuser"]}><Bookings /></ProtectedRoute>} />
-        <Route path="/booking-history" element={<ProtectedRoute><BookingHistory /></ProtectedRoute>} />
+        <Route path="/bookings" element={<ProtectedRoute requiredRoles={["student", "admin", "superuser"]}><Bookings /></ProtectedRoute>} />
+        <Route path="/booking-history" element={<ProtectedRoute requiredRoles={["student", "admin", "superuser"]}><BookingHistory /></ProtectedRoute>} />
 
         {/* Coupons */}
-        <Route path="/coupons" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><Coupons /></ProtectedRoute>} />
+        <Route path="/coupons" element={<ProtectedRoute requiredRoles={["student", "admin", "superuser"]}><Coupons /></ProtectedRoute>} />
 
         {/* Notifications */}
-        <Route path="/notifications" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><Notifications /></ProtectedRoute>} />
+        <Route path="/notifications" element={<ProtectedRoute requiredRoles={["student", "admin", "superuser"]}><Notifications /></ProtectedRoute>} />
 
         {/* Reports */}
         <Route path="/reports" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><Reports /></ProtectedRoute>} />
@@ -97,7 +93,7 @@ const AppContent: React.FC = () => {
         <Route path="/audit-logs" element={<ProtectedRoute requiredRoles={["admin", "superuser"]}><AuditLogs /></ProtectedRoute>} />
 
         {/* Profile */}
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute requiredRoles={["student", "admin", "superuser"]}><Profile /></ProtectedRoute>} />
 
         {/* Role/Permission Test */}
         <Route path="/role-test" element={<ProtectedRoute><RoleTest /></ProtectedRoute>} />

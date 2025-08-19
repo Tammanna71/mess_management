@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const login = async (credentials: LoginCredentials, userType: string = 'student'): Promise<{ success: boolean; user?: User }> => {
 		try {
 			dispatch({ type: 'SET_LOADING', payload: true });
-			const endpoint = (userType === 'admin' || userType === 'staff') ? '/auth/admin/login/' : '/auth/student/login/';
+			const endpoint = userType === 'admin' ? '/auth/admin/login/' : '/auth/student/login/';
 			const response = await apiService.post(endpoint, credentials);
 
 			const tokens: AuthTokens = {
@@ -143,7 +143,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 	const register = async (userData: RegisterData, userType: string = 'student'): Promise<{ success: boolean; user?: User }> => {
 		try {
 			dispatch({ type: 'SET_LOADING', payload: true });
-			const endpoint = (userType === 'admin' || userType === 'staff') ? '/auth/admin/register/' : '/auth/student/register/';
+			const endpoint = userType === 'admin' ? '/auth/admin/signup/' : '/auth/signup/';
 			const response = await apiService.post(endpoint, userData);
 			return { success: true, user: response.user };
 		} catch (error) {

@@ -3,6 +3,8 @@ import { apiService } from '../services/api';
 import { formatDateTime } from '../utils/helpers';
 import LoadingAnimation from '../components/LoadingAnimation';
 
+
+
 interface AuditLog {
 	id: number;
 	performed_by: string;  // Backend returns string, not object
@@ -10,6 +12,7 @@ interface AuditLog {
 	details: string;
 	timestamp: string;
 }
+
 
 const AuditLogs = () => {
 	const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);

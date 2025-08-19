@@ -45,16 +45,14 @@ const Navigation: React.FC = () => {
 	const dashboardUrl = useMemo((): string => {
 		if (!user) return '/';
 
-		if (user.is_superuser) return '/admin';
-		if (user.is_staff) return '/staff';
+		if (user.is_superuser || user.is_staff) return '/admin';
 		return '/student';
 	}, [user]);
 
 	const getNavItems = (): NavItem[] => {
 		if (!user) return [];
 
-		const isAdmin = user.is_superuser;
-		const isStaff = user.is_staff || user.is_superuser;
+		const isAdmin = user.is_superuser || user.is_staff;
 
 		const items: NavItem[] = [
 			{
@@ -74,7 +72,7 @@ const Navigation: React.FC = () => {
 			},
 		];
 
-		if (isAdmin || isStaff) {
+		if (isAdmin) {
 			items.push(
 				{
 					name: 'Management',
@@ -99,20 +97,8 @@ const Navigation: React.FC = () => {
 						{
 							name: 'Bookings',
 							href: '/bookings',
-							icon: 'M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'
-						}
-					]
-				}
-			);
-		}
-
-		if (isAdmin) {
-			items.push(
-				{
-					name: 'Admin Tools',
-					href: '#',
-					icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z',
-					children: [
+							icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+						},
 						{
 							name: 'Coupons',
 							href: '/coupons',
@@ -121,7 +107,7 @@ const Navigation: React.FC = () => {
 						{
 							name: 'Notifications',
 							href: '/notifications',
-							icon: 'M15 17h5l-5 5v-5zM4.19 4.47A.749.749 0 014.47 4.19L4.86 3.8A.749.749 0 015.54 3.8L5.93 4.19A.749.749 0 015.54 4.86L5.15 4.47A.749.749 0 014.19 4.47zM4.19 19.53A.749.749 0 014.47 19.81L4.86 20.2A.749.749 0 015.54 20.2L5.93 19.81A.749.749 0 015.54 19.14L5.15 19.53A.749.749 0 014.19 19.53z'
+							icon: 'M15 17h5l-5 5v-5zM4.19 4.19A2 2 0 004 6v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-1.81 1.19z'
 						},
 						{
 							name: 'Reports',
@@ -136,61 +122,93 @@ const Navigation: React.FC = () => {
 					]
 				}
 			);
+		} else {
+			// Student navigation items
+			items.push(
+				{
+					name: 'Student',
+					href: '#',
+					icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z',
+					children: [
+						{
+							name: 'Bookings',
+							href: '/bookings',
+							icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'
+						},
+						{
+							name: 'Booking History',
+							href: '/booking-history',
+							icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+						},
+						{
+							name: 'My Coupons',
+							href: '/coupons',
+							icon: 'M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z'
+						}
+					]
+				}
+			);
 		}
 
 		return items;
 	};
 
-	const navItems = useMemo(() => getNavItems(), [user]);
+	const navItems = getNavItems();
 
-	const getUserRole = (): string => {
-		if (user?.is_superuser) return 'Admin';
-		if (user?.is_staff) return 'Staff';
-		return 'Student';
+	const toggleDropdown = (name: string) => {
+		setOpenDropdown(openDropdown === name ? null : name);
 	};
 
-	const toggleDropdown = (itemName: string) => {
-		setOpenDropdown(openDropdown === itemName ? null : itemName);
+	const closeMobileMenu = () => {
+		setIsMobileMenuOpen(false);
+		setOpenDropdown(null);
 	};
 
 	const renderNavItem = (item: NavItem) => {
 		const isActive = location.pathname === item.href;
-		const isDropdownOpen = openDropdown === item.name;
 		const hasChildren = item.children && item.children.length > 0;
+		const isDropdownOpen = openDropdown === item.name;
 
 		if (hasChildren) {
 			return (
 				<div key={item.name} className="relative">
 					<button
 						onClick={() => toggleDropdown(item.name)}
-						className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive
-							? 'bg-blue-100 text-blue-700'
-							: 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-							}`}
+						className={`
+							flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200
+							${isActive
+								? 'bg-orange-100 text-orange-700'
+								: 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'
+							}
+						`}
 					>
-						<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 							<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
 						</svg>
-						<span>{item.name}</span>
-						<ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+						{item.name}
+						<ChevronDown className={`ml-1 h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
 					</button>
 
 					{isDropdownOpen && (
-						<div className="absolute top-full left-0 mt-1 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
-							{item.children!.map((child) => (
-								<Link
-									key={child.name}
-									to={child.href}
-									className={`flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 ${location.pathname === child.href ? 'bg-blue-50 text-blue-600' : ''
-										}`}
-									onClick={() => setOpenDropdown(null)}
-								>
-									<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={child.icon} />
-									</svg>
-									<span>{child.name}</span>
-								</Link>
-							))}
+						<div className="absolute left-0 mt-2 w-56 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+							<div className="py-1">
+								{item.children!.map((child) => (
+									<Link
+										key={child.name}
+										to={child.href}
+										onClick={closeMobileMenu}
+										className={`
+											flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition-colors duration-200
+											${location.pathname === child.href ? 'bg-orange-50 text-orange-700' : ''}
+										`}
+									>
+										<svg className="mr-3 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={child.icon} />
+										</svg>
+										{child.name}
+									</Link>
+								))}
+							</div>
 						</div>
 					)}
 				</div>
@@ -201,142 +219,71 @@ const Navigation: React.FC = () => {
 			<Link
 				key={item.name}
 				to={item.href}
-				className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive
-					? 'bg-blue-100 text-blue-700'
-					: 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-					}`}
+				onClick={closeMobileMenu}
+				className={`
+					flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors duration-200
+					${isActive
+						? 'bg-orange-100 text-orange-700'
+						: 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'
+					}
+				`}
 			>
-				<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<svg className="mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
 				</svg>
-				<span>{item.name}</span>
+				{item.name}
 			</Link>
 		);
 	};
 
-	const renderMobileNavItem = (item: NavItem) => {
-		const isActive = location.pathname === item.href;
-		const hasChildren = item.children && item.children.length > 0;
-
-		if (hasChildren) {
-			return (
-				<div key={item.name} className="space-y-1">
-					<button
-						onClick={() => toggleDropdown(item.name)}
-						className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive
-							? 'bg-blue-100 text-blue-700'
-							: 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-							}`}
-					>
-						<div className="flex items-center space-x-2">
-							<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-							</svg>
-							<span>{item.name}</span>
-						</div>
-						<ChevronDown className={`h-4 w-4 transition-transform duration-200 ${openDropdown === item.name ? 'rotate-180' : ''}`} />
-					</button>
-
-					{openDropdown === item.name && (
-						<div className="ml-4 space-y-1">
-							{item.children!.map((child) => (
-								<Link
-									key={child.name}
-									to={child.href}
-									className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 transition-colors duration-200 ${location.pathname === child.href ? 'bg-blue-50 text-blue-600' : ''
-										}`}
-									onClick={() => setIsMobileMenuOpen(false)}
-								>
-									<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={child.icon} />
-									</svg>
-									<span>{child.name}</span>
-								</Link>
-							))}
-						</div>
-					)}
-				</div>
-			);
-		}
-
+	if (loading) {
 		return (
-			<Link
-				key={item.name}
-				to={item.href}
-				className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200 ${isActive
-					? 'bg-blue-100 text-blue-700'
-					: 'text-gray-700 hover:text-blue-600 hover:bg-gray-50'
-					}`}
-				onClick={() => setIsMobileMenuOpen(false)}
-			>
-				<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={item.icon} />
-				</svg>
-				<span>{item.name}</span>
-			</Link>
+			<nav className="bg-white shadow-sm border-b border-gray-200">
+				<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+					<div className="flex justify-between h-16">
+						<div className="flex items-center">
+							<LoadingSpinner size="sm" />
+						</div>
+					</div>
+				</div>
+			</nav>
 		);
-	};
+	}
 
 	return (
-		<nav ref={navRef} className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+		<nav ref={navRef} className="bg-white shadow-sm border-b border-gray-200">
 			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 				<div className="flex justify-between h-16">
-					{/* Logo and Brand */}
-					<div className="flex items-center">
-						<Link to={dashboardUrl} className="flex items-center space-x-3">
-							<div className="h-8 w-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-								<svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-								</svg>
-							</div>
-							<span className="text-xl font-bold text-gray-900">Mess Management</span>
-						</Link>
-					</div>
-
 					{/* Desktop Navigation */}
 					<div className="hidden md:flex items-center space-x-4">
-						{loading ? (
-							<div className="flex items-center space-x-4">
-								<LoadingSpinner size="sm" />
-								<span className="text-sm text-gray-500">Loading...</span>
-							</div>
-						) : (
-							navItems.map(renderNavItem)
-						)}
-
-						{/* User Menu */}
-						<div className="flex items-center space-x-4 ml-4 pl-4 border-l border-gray-200">
-							<div className="flex items-center space-x-2">
-								<div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-									<svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-									</svg>
-								</div>
-								<div className="text-sm">
-									<div className="font-medium text-gray-900">{user?.name || user?.phone}</div>
-									<div className="text-gray-500">{getUserRole()}</div>
-								</div>
-							</div>
-
-							<button
-								onClick={handleLogout}
-								className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
-							>
-								<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-								</svg>
-								<span>Logout</span>
-							</button>
-						</div>
+						{navItems.map(renderNavItem)}
 					</div>
 
 					{/* Mobile menu button */}
 					<div className="md:hidden flex items-center">
 						<button
 							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-							className="inline-flex items-center justify-center p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+							className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-orange-500"
 						>
-							{isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+							{isMobileMenuOpen ? (
+								<X className="block h-6 w-6" />
+							) : (
+								<Menu className="block h-6 w-6" />
+							)}
+						</button>
+					</div>
+
+					{/* User Menu */}
+					<div className="flex items-center space-x-4">
+						<div className="hidden md:flex items-center space-x-2">
+							<span className="text-sm text-gray-700">Welcome,</span>
+							<span className="text-sm font-medium text-gray-900">{user.name}</span>
+						</div>
+						<button
+							onClick={handleLogout}
+							className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors duration-200"
+						>
+							Logout
 						</button>
 					</div>
 				</div>
@@ -346,30 +293,16 @@ const Navigation: React.FC = () => {
 			{isMobileMenuOpen && (
 				<div className="md:hidden">
 					<div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
-						{!loading && navItems.map(renderMobileNavItem)}
-
-						{/* Mobile User Menu */}
-						<div className="pt-4 border-t border-gray-200">
-							<div className="flex items-center space-x-3 px-3 py-2">
-								<div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-									<svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-									</svg>
-								</div>
-								<div className="text-sm">
-									<div className="font-medium text-gray-900">{user?.name || user?.phone}</div>
-									<div className="text-gray-500">{getUserRole()}</div>
-								</div>
-							</div>
-
+						{navItems.map(renderNavItem)}
+					</div>
+					<div className="pt-4 pb-3 border-t border-gray-200">
+						<div className="px-4">
+							<div className="text-sm text-gray-700 mb-2">Welcome, {user.name}</div>
 							<button
 								onClick={handleLogout}
-								className="w-full flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-red-50 transition-colors duration-200"
+								className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors duration-200"
 							>
-								<svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-								</svg>
-								<span>Logout</span>
+								Logout
 							</button>
 						</div>
 					</div>
